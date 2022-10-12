@@ -1,4 +1,8 @@
+import fs from 'node:fs';
+import { Readable } from 'node:stream';
 import urls from './urls.json' assert { type: 'json' };
+
+const downloadFolder = './downloads';
 
 const zoomUrlRegex = /https:\/\/(.*\.)?(zoom.us|zoomgov.com)\/rec\/share\/.+\?pwd=.+/;
 const zoomMp4UrlRegex = /https:\/\/ssrweb\..+\/(.+\.mp4)[^'"]+/g;
@@ -51,8 +55,34 @@ for await (const url of urls) {
 
 	headers.append('Referer', 'https://zoom.us/');
 
+	console.log(`Downloading video file(s). (${url})`);
+
 	for await (const { url, filename } of videoUrlMatches) {
 		const response = await fetch(url, { headers });
-		console.log(response.ok, filename);
+
+		if (!response.ok)
+			throw new Error(`Video file fetch has failed. (${filename})`);
+
+		if (!fs.existsSync(downloadFolder)) fs.mkdirSync(downloadFolder);
+
+		const writeStream = fs.createWriteStream(`${downloadFolder}/${filename}`);
+		const readable = Readable.fromWeb(response.body);
+
+		readable.pipe(writeStream);
+
+		await new Promise((resolve, reject) => {
+			readable.on('end', () => {
+				console.log(`Successfully downloaded file. (${filename})`);
+				resolve();
+			});
+			readable.on('error', (error) => {
+				console.log(`Failed to download file. (${filename})`);
+				reject(error);
+			});
+		});
 	};
+
+	console.log(`Downloaded video file(s). (${url})`);
 };
+
+console.log('Download completed.');
