@@ -40,7 +40,7 @@ for await (const url of urls) {
 		throw new Error(`Initial fetch has failed. (${url})`);
 
 	// Node.js Fetch API merges Set-Cookie headers into a single string
-	const setCookieString = initialResponse.headers.get('set-cookie');
+	const setCookieString = initialResponse.headers.get('set-cookie') || '';
 	const cookieString = [...setCookieString.matchAll(regex.setCookie)]
 		.map(([, group1]) => (group1))
 		.join('; ');
@@ -74,6 +74,8 @@ for await (const url of urls) {
 		if (!fs.existsSync(downloadFolder)) fs.mkdirSync(downloadFolder);
 
 		const writeStream = fs.createWriteStream(`${downloadFolder}/${filename}`);
+
+		// @ts-ignore
 		const readable = Readable.fromWeb(response.body);
 
 		readable.pipe(writeStream);
