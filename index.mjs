@@ -1,4 +1,4 @@
-import fs from 'node:fs';
+import { createWriteStream, existsSync, mkdirSync, renameSync } from 'node:fs';
 import { Readable } from 'node:stream';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 const regex = {
 	// Reference Zoom Vanity URL https://support.zoom.us/hc/en-us/articles/215062646
 	zoomShare: /^https:\/\/(?:([a-z][a-z\-]{2,}[a-z])\.)?(zoom.us|zoomgov.com)\/rec\/share\/([^?\s]+)\?pwd=([^?\s]+)$/,
-	zoomVideo: /https:\/\/ssrweb\..+\/(.+\.mp4)[^'"]+/g,
+	zoomVideo: /https:\/\/ssrweb\..+\/(.+)\.mp4[^'"]+/g,
 	setCookie: /([^,= ]+=[^,;]+);? *(?:[^,= ]+(?:=(?:Mon,|Tue,|Wed,|Thu,|Fri,|Sat,|Sun,)?[^,;]+)?;? *)*/g
 };
 
@@ -85,9 +85,11 @@ for await (const url of urls) {
 		if (!response.ok)
 			throw new Error(`Video file fetch has failed. (${filename})`);
 
-		if (!fs.existsSync(downloadFolder)) fs.mkdirSync(downloadFolder);
+		if (!existsSync(downloadFolder)) mkdirSync(downloadFolder);
 
-		const writeStream = fs.createWriteStream(`${downloadFolder}/${filename}`);
+		const temporaryFilename = Date.now().toString();
+
+		const writeStream = createWriteStream(`${downloadFolder}/${temporaryFilename}.part`);
 
 		// @ts-ignore
 		const readable = Readable.fromWeb(response.body);
@@ -96,6 +98,7 @@ for await (const url of urls) {
 
 		await new Promise((resolve, reject) => {
 			readable.on('end', () => {
+				renameSync(`${downloadFolder}/${temporaryFilename}.part`, `${downloadFolder}/${filename}.mp4`);
 				console.log(`Successfully downloaded file. (${filename})`);
 				resolve();
 			});
