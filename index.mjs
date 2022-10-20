@@ -12,6 +12,7 @@ const regex = {
 	// Reference Zoom Vanity URL https://support.zoom.us/hc/en-us/articles/215062646
 	zoomShare: /^https:\/\/(?:([a-z][a-z\-]{2,}[a-z])\.)?(zoom.us|zoomgov.com)\/rec\/share\/([^?\s]+)\?pwd=([^?\s]+)$/,
 	zoomVideo: /https:\/\/ssrweb\..+\/(.+)\.mp4[^'"]+/g,
+	zoomTopic: /topic: "(.+)",/,
 	setCookie: /([^,= ]+=[^,;]+);? *(?:[^,= ]+(?:=(?:Mon,|Tue,|Wed,|Thu,|Fri,|Sat,|Sun,)?[^,;]+)?;? *)*/g
 };
 
@@ -86,6 +87,8 @@ for await (const url of urls) {
 		continue;
 	};
 
+	const meetingTopic = downloadPageHtml.match(regex.zoomTopic);
+
 	headers.append('Referer', 'https://zoom.us/');
 
 	console.log(Date.now());
@@ -103,6 +106,7 @@ for await (const url of urls) {
 		if (!existsSync(downloadFolder)) mkdirSync(downloadFolder);
 
 		const temporaryFilename = Date.now().toString();
+		const customFilename = meetingTopic ? `${meetingTopic[1]} (${filename})` : filename;
 
 		const writeStream = createWriteStream(`${downloadFolder}/${temporaryFilename}.part`);
 
@@ -113,12 +117,12 @@ for await (const url of urls) {
 
 		await new Promise((resolve, reject) => {
 			readable.on('end', () => {
-				renameSync(`${downloadFolder}/${temporaryFilename}.part`, `${downloadFolder}/${filename}.mp4`);
-				console.log(`Successfully downloaded file. (${filename})`);
+				renameSync(`${downloadFolder}/${temporaryFilename}.part`, `${downloadFolder}/${customFilename}.mp4`);
+				console.log(`Successfully downloaded video file. (${customFilename})`);
 				resolve();
 			});
 			readable.on('error', (error) => {
-				console.error(`Failed to download file. (${filename})`);
+				console.error(`Failed to download video file. (${customFilename})`);
 				failedVideoUrls.push(url);
 				reject(error);
 			});
