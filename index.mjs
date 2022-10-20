@@ -4,20 +4,28 @@ import urls from './urls.json' assert { type: 'json' };
 
 const downloadFolder = './downloads';
 
-const zoomUrlRegex = /https:\/\/(.*\.)?(zoom.us|zoomgov.com)\/rec\/share\/.+\?pwd=.+/;
-const zoomMp4UrlRegex = /https:\/\/ssrweb\..+\/(.+\.mp4)[^'"]+/g;
-const setCookieRegex = /([^,= ]+=[^,;]+);? *([^,= ]+(=(Mon,|Tue,|Wed,|Thu,|Fri,|Sat,|Sun,)?[^,;]+)?;? *)*/g;
+const regex = {
+	zoomShare: /https:\/\/(.*\.)?(zoom.us|zoomgov.com)\/rec\/share\/.+\?pwd=.+/,
+	zoomVideo: /https:\/\/ssrweb\..+\/(.+\.mp4)[^'"]+/g,
+	setCookie: /([^,= ]+=[^,;]+);? *([^,= ]+(=(Mon,|Tue,|Wed,|Thu,|Fri,|Sat,|Sun,)?[^,;]+)?;? *)*/g
+};
+
+// Runtime Validation
 
 if (typeof (fetch) === 'undefined')
 	throw new Error('Fetch API is not supported. Use Node.js v18 or later.');
+
+// Zoom URL Validation
 
 if (!(Array.isArray(urls) && urls.length))
 	throw new Error('Zoom URL is not found.');
 
 for (const url of urls) {
-	if (!zoomUrlRegex.test(url) || url === 'https://zoom.us/rec/share/unique-id?pwd=password')
+	if (!regex.zoomShare.test(url) || url === 'https://zoom.us/rec/share/unique-id?pwd=password')
 		throw new Error(`Zoom URL is not valid. (${url})`);
 };
+
+// Download Video Files
 
 for await (const url of urls) {
 	const headers = new Headers({
@@ -33,7 +41,7 @@ for await (const url of urls) {
 
 	// Node.js Fetch API merges Set-Cookie headers into a single string
 	const setCookieString = initialResponse.headers.get('set-cookie');
-	const cookieString = [...setCookieString.matchAll(setCookieRegex)]
+	const cookieString = [...setCookieString.matchAll(regex.setCookie)]
 		.map(([, group1]) => (group1))
 		.join('; ');
 
@@ -47,7 +55,7 @@ for await (const url of urls) {
 		throw new Error(`Download page fetch has failed. (${url})`);
 
 	const downloadPageHtml = await downloadPageResponse.text();
-	const videoUrlMatches = [...downloadPageHtml.matchAll(zoomMp4UrlRegex)]
+	const videoUrlMatches = [...downloadPageHtml.matchAll(regex.zoomVideo)]
 		.map(([url, filename]) => ({ url, filename }));
 
 	if (!videoUrlMatches.length)
