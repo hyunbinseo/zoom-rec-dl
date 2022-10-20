@@ -5,9 +5,10 @@ import urls from './urls.json' assert { type: 'json' };
 const downloadFolder = './downloads';
 
 const regex = {
-	zoomShare: /https:\/\/(.*\.)?(zoom.us|zoomgov.com)\/rec\/share\/.+\?pwd=.+/,
+	// Reference Zoom Vanity URL https://support.zoom.us/hc/en-us/articles/215062646
+	zoomShare: /^https:\/\/(?:([a-z][a-z\-]{2,}[a-z])\.)?(zoom.us|zoomgov.com)\/rec\/share\/([^?\s]+)\?pwd=([^?\s]+)$/,
 	zoomVideo: /https:\/\/ssrweb\..+\/(.+\.mp4)[^'"]+/g,
-	setCookie: /([^,= ]+=[^,;]+);? *([^,= ]+(=(Mon,|Tue,|Wed,|Thu,|Fri,|Sat,|Sun,)?[^,;]+)?;? *)*/g
+	setCookie: /([^,= ]+=[^,;]+);? *(?:[^,= ]+(?:=(?:Mon,|Tue,|Wed,|Thu,|Fri,|Sat,|Sun,)?[^,;]+)?;? *)*/g
 };
 
 // Runtime Validation
@@ -21,7 +22,7 @@ if (!(Array.isArray(urls) && urls.length))
 	throw new Error('Zoom URL is not found.');
 
 for (const url of urls) {
-	if (!regex.zoomShare.test(url) || url === 'https://zoom.us/rec/share/unique-id?pwd=password')
+	if (typeof url !== 'string' || !regex.zoomShare.test(url) || url === 'https://zoom.us/rec/share/unique-id?pwd=password')
 		throw new Error(`Zoom URL is not valid. (${url})`);
 };
 
@@ -42,7 +43,7 @@ for await (const url of urls) {
 	// Node.js Fetch API merges Set-Cookie headers into a single string
 	const setCookieString = initialResponse.headers.get('set-cookie') || '';
 	const cookieString = [...setCookieString.matchAll(regex.setCookie)]
-		.map(([, group1]) => (group1))
+		.map(([, nameValue]) => (nameValue))
 		.join('; ');
 
 	headers.append('Cookie', cookieString);
