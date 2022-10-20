@@ -1,8 +1,12 @@
 import fs from 'node:fs';
 import { Readable } from 'node:stream';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import settings from './settings.json' assert { type: 'json' };
 import urls from './urls.json' assert { type: 'json' };
 
-const downloadFolder = './downloads';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const regex = {
 	// Reference Zoom Vanity URL https://support.zoom.us/hc/en-us/articles/215062646
@@ -10,6 +14,15 @@ const regex = {
 	zoomVideo: /https:\/\/ssrweb\..+\/(.+\.mp4)[^'"]+/g,
 	setCookie: /([^,= ]+=[^,;]+);? *(?:[^,= ]+(?:=(?:Mon,|Tue,|Wed,|Thu,|Fri,|Sat,|Sun,)?[^,;]+)?;? *)*/g
 };
+
+// Setting Validation
+
+const { download } = settings;
+
+if (typeof download.folder !== 'string' || !/^[a-z]+$/.test(download.folder))
+	throw new Error(`Download folder is not valid. (${download.folder})`);
+
+const downloadFolder = `${__dirname}/${download.folder}`;
 
 // Runtime Validation
 
