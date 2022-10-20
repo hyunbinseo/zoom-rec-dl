@@ -2,6 +2,7 @@ import { createWriteStream, existsSync, mkdirSync, renameSync, writeFileSync } f
 import { Readable } from 'node:stream';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import information from './package.json' assert { type: 'json' };
 import settings from './settings.json' assert { type: 'json' };
 import urls from './urls.json' assert { type: 'json' };
 
@@ -31,12 +32,13 @@ const downloadFolder = `${__dirname}/${download.folder}`;
 
 // Zoom URL Validation
 
-if (!Array.isArray(urls) || !urls.length) throw new Error('Zoom URL is not found.');
+if (!Array.isArray(urls)) throw new Error('The urls.json file should be an array.');
+if (!urls.length) throw new Error('Zoom URLs are not found.');
 
 for (const url of urls) {
 	if (typeof url !== 'string') throw new Error('Zoom URL should be a string.');
 	if (!regex.zoomShare.test(url)) throw new Error(`Zoom URL is not valid. (${url})`);
-	if (url === 'https://zoom.us/rec/share/unique-id?pwd=password') throw new Error('Sample Zoom URL is found. Check the urls.json file.');
+	if (url === 'https://zoom.us/rec/share/unique-id?pwd=password') throw new Error('Sample Zoom URL is found. Remove if from the urls.json file.');
 };
 
 // Download Video Files
@@ -45,22 +47,33 @@ const failedShareUrls = [];
 const failedVideoUrls = [];
 
 for await (const url of urls) {
+	const id = (url.match(regex.zoomShare) || [])[3] || '';
+
+	console.log();
+	console.log(new Date().toISOString());
+	if (id) console.log(id);
+
 	const headers = new Headers({
 		// Chrome 106 on Windows 11
 		'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36',
 	});
 
-	// Redirect response with Set-Cookie header
 	const initialResponse = await fetch(url, { headers });
 
+	// Redirect response with a Set-Cookie header expected
 	if (!initialResponse.ok || !initialResponse.redirected) {
-		console.error(`Initial fetch has failed. (${url})`);
+		console.error('Initial fetch has failed. Skipping.');
 		failedShareUrls.push(url);
 		continue;
 	};
 
+	const setCookieString = initialResponse.headers.get('set-cookie');
+
 	// Node.js Fetch API merges Set-Cookie headers into a single string
-	const setCookieString = initialResponse.headers.get('set-cookie') || '';
+	// This behavior can change, since Fetch API is an experimental feature.
+	// (node:6532) ExperimentalWarning: The Fetch API is an experimental feature. This feature could change at any time
+	if (typeof setCookieString !== 'string') throw new Error(`Set-Cookie is not a string. Please leave an issue in ${information.bugs.url}`);
+
 	const cookieString = [...setCookieString.matchAll(regex.setCookie)]
 		.map(([, nameValue]) => (nameValue))
 		.join('; ');
@@ -72,7 +85,7 @@ for await (const url of urls) {
 	const downloadPageResponse = await fetch(url, { headers });
 
 	if (!downloadPageResponse.ok) {
-		console.error(`Download page fetch has failed. (${url})`);
+		console.error('Download page fetch has failed. Skipping.');
 		failedShareUrls.push(url);
 		continue;
 	};
@@ -82,23 +95,24 @@ for await (const url of urls) {
 		.map(([url, filename]) => ({ url, filename }));
 
 	if (!videoUrlMatches.length) {
-		console.error(`Video URL is not found. (${url})`);
+		console.error('Video URL is not found. Skipping.');
 		failedShareUrls.push(url);
 		continue;
 	};
 
 	const meetingTopic = downloadPageHtml.match(regex.zoomTopic);
 
+	// Required to prevent 403 Forbidden error
 	headers.append('Referer', 'https://zoom.us/');
 
-	console.log(Date.now());
-	console.log(`Downloading video file(s). (${url})`);
-
 	for await (const { url, filename } of videoUrlMatches) {
+		console.log();
+		console.log(`Downloading ${filename}`);
+
 		const response = await fetch(url, { headers });
 
 		if (!response.ok) {
-			console.error(`Video file fetch has failed. (${filename})`);
+			console.error('Video fetch has failed. Skipping.');
 			failedVideoUrls.push(url);
 			continue;
 		};
@@ -110,29 +124,31 @@ for await (const url of urls) {
 
 		const writeStream = createWriteStream(`${downloadFolder}/${temporaryFilename}.part`);
 
-		// @ts-ignore
+		// @ts-ignore Reference https://stackoverflow.com/a/66629140/12817553
 		const readable = Readable.fromWeb(response.body);
 
 		readable.pipe(writeStream);
 
-		await new Promise((resolve, reject) => {
+		await new Promise((resolve) => {
 			readable.on('end', () => {
 				renameSync(`${downloadFolder}/${temporaryFilename}.part`, `${downloadFolder}/${customFilename}.mp4`);
-				console.log(`Successfully downloaded video file. (${customFilename})`);
+				console.log(`Saved as ${customFilename}`);
 				resolve();
 			});
-			readable.on('error', (error) => {
-				console.error(`Failed to download video file. (${customFilename})`);
+			readable.on('error', () => {
+				console.error(`Download has failed.`);
 				failedVideoUrls.push(url);
-				reject(error);
+				resolve();
 			});
 		});
 	};
 
-	console.log(`Downloaded video file(s). (${url})`);
+	console.log();
 };
 
-console.log('Download completed.');
+console.log();
+console.log(new Date().toISOString());
+console.log('All downloads are completed.');
 
 if (failedShareUrls.length || failedVideoUrls.length) {
 	const filename = `${Date.now()}.txt`;
