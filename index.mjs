@@ -100,7 +100,7 @@ for await (const url of urls) {
 		continue;
 	};
 
-	const meetingTopic = downloadPageHtml.match(regex.zoomTopic);
+	const meetingTopic = ((downloadPageHtml.match(regex.zoomTopic) || [])[1] || '').trim();
 
 	// Required to prevent 403 Forbidden error
 	headers.append('Referer', 'https://zoom.us/');
@@ -120,7 +120,7 @@ for await (const url of urls) {
 		if (!existsSync(downloadFolder)) mkdirSync(downloadFolder);
 
 		const temporaryFilename = Date.now().toString();
-		const customFilename = meetingTopic ? `${meetingTopic[1]} (${filename})` : filename;
+		const customFilename = meetingTopic ? `${meetingTopic} (${filename})` : filename;
 
 		const writeStream = createWriteStream(`${downloadFolder}/${temporaryFilename}.part`);
 
