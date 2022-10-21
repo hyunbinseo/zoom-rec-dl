@@ -119,19 +119,23 @@ for await (const url of urls) {
 
 		if (!existsSync(downloadFolder)) mkdirSync(downloadFolder);
 
-		const temporaryFilename = Date.now().toString();
-		const customFilename = meetingTopic ? `${meetingTopic} (${filename})` : filename;
+		const temporaryFilename = `${Date.now()}.part`;
 
-		const writeStream = createWriteStream(`${downloadFolder}/${temporaryFilename}.part`);
+		const writeStream = createWriteStream(`${downloadFolder}/${temporaryFilename}`);
 
 		// @ts-ignore Reference https://stackoverflow.com/a/66629140/12817553
 		const readable = Readable.fromWeb(response.body);
 
 		readable.pipe(writeStream);
 
+		const customFilename = (meetingTopic
+			? `[${meetingTopic}] ${filename}`
+			: filename
+		).replaceAll(/[<>:"/\\|?*]/g, '_') + '.mp4';
+
 		await new Promise((resolve) => {
 			readable.on('end', () => {
-				renameSync(`${downloadFolder}/${temporaryFilename}.part`, `${downloadFolder}/${customFilename}.mp4`);
+				renameSync(`${downloadFolder}/${temporaryFilename}`, `${downloadFolder}/${customFilename}`);
 				console.log(`Saved as ${customFilename}`);
 				resolve();
 			});
