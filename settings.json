@@ -1,3 +1,5 @@
 {
-	"download_folder": "downloads"
+	"download_folder": "downloads",
+	"filename_meeting_topic": true,
+	"filename_unix_timestamp": false
 }

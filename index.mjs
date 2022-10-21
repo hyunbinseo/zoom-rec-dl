@@ -24,12 +24,19 @@ if (typeof (fetch) === 'undefined') throw new Error('Fetch API is not supported.
 
 // Setting Validation
 
-const { download_folder } = settings;
+const {
+	download_folder,
+	filename_meeting_topic,
+	filename_unix_timestamp
+} = settings;
 
-if (typeof download_folder !== 'string') throw new Error('Download folder should be a string.');
-if (!/^[a-z]+$/.test(download_folder)) throw new Error(`Download folder is not valid. (${download_folder})`);
+if (typeof download_folder !== 'string') throw new Error('download_folder should be a string.');
+if (!/^[a-z]+$/.test(download_folder)) throw new Error(`download_folder is not valid. (${download_folder})`);
 
 const downloadFolder = `${__dirname}/${download_folder}`;
+
+if (typeof filename_meeting_topic !== 'boolean') throw new Error('filename_meeting_topic should be a boolean');
+if (typeof filename_unix_timestamp !== 'boolean') throw new Error('filename_unix_timestamp should be a boolean');
 
 // Zoom URL Validation
 
@@ -129,10 +136,15 @@ for await (const url of urls) {
 
 		readable.pipe(writeStream);
 
-		const customFilename = (meetingTopic
-			? `[${meetingTopic}] ${filename}`
-			: filename
-		).replaceAll(/[<>:"/\\|?*]/g, '_') + '.mp4';
+		const customFilename = [
+			filename_meeting_topic ? meetingTopic : '',
+			filename,
+			filename_unix_timestamp ? `@${Date.now()}`.slice(0, -3) : ''
+		]
+			.filter((value) => (value))
+			.join(' ')
+			.replaceAll(/[<>:"/\\|?*]/g, '_')
+			.concat('.mp4');
 
 		await new Promise((resolve) => {
 			readable.on('end', () => {
