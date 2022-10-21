@@ -11,6 +11,7 @@ const __dirname = path.dirname(__filename);
 
 const regex = {
 	// Reference Zoom Vanity URL https://support.zoom.us/hc/en-us/articles/215062646
+	zoomSample: /^https:\/\/zoom.us\/rec\/share\/something-unique-[1-9]\?pwd=something-strong-[1-9]$/,
 	zoomShare: /^https:\/\/(?:([a-z][a-z\-]{2,}[a-z])\.)?(zoom.us|zoomgov.com)\/rec\/share\/([^?\s]+)\?pwd=([^?\s]+)$/,
 	zoomVideo: /https:\/\/ssrweb\..+\/(.+)\.mp4[^'"]+/g,
 	zoomTopic: /topic: "(.+)",/,
@@ -38,7 +39,7 @@ if (!urls.length) throw new Error('Zoom URLs are not found.');
 for (const url of urls) {
 	if (typeof url !== 'string') throw new Error('Zoom URL should be a string.');
 	if (!regex.zoomShare.test(url)) throw new Error(`Zoom URL is not valid. (${url})`);
-	if (url === 'https://zoom.us/rec/share/unique-id?pwd=password') throw new Error('Sample Zoom URL is found. Remove if from the urls.json file.');
+	if (regex.zoomSample.test(url)) throw new Error('Sample Zoom URL is found. Remove if from the urls.json file.');
 };
 
 // Download Video Files

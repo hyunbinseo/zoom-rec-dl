@@ -5,7 +5,7 @@ Cross-platform Zoom cloud recordings download script.
 ## Requirement
 
 - Windows, macOS, and Linux. Any operating system that supports [Node.js](https://nodejs.org/) v18 or later.
-- Zoom URL[^1] that includes a password. (e.g. `"https://zoom.us/rec/share/id?pwd=`)
+- Zoom URL[^1] that includes a password. (e.g. `https://zoom.us/rec/share/id?pwd=password`)
 
 ## Instruction
 
