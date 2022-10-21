@@ -21,9 +21,7 @@ Edit the `settings.json` file if necessary.
 
 ```jsonc
 {
-  "download": {
-    "folder": "downloads" // lowercase alphabets only (a-z)
-  }
+  "download_folder": "downloads" // lowercase alphabets only (a-z)
 }
 ```
 

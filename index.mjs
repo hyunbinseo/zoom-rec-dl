@@ -23,12 +23,12 @@ if (typeof (fetch) === 'undefined') throw new Error('Fetch API is not supported.
 
 // Setting Validation
 
-const { download } = settings;
+const { download_folder } = settings;
 
-if (typeof download.folder !== 'string') throw new Error('Download folder should be a string.');
-if (!/^[a-z]+$/.test(download.folder)) throw new Error(`Download folder is not valid. (${download.folder})`);
+if (typeof download_folder !== 'string') throw new Error('Download folder should be a string.');
+if (!/^[a-z]+$/.test(download_folder)) throw new Error(`Download folder is not valid. (${download_folder})`);
 
-const downloadFolder = `${__dirname}/${download.folder}`;
+const downloadFolder = `${__dirname}/${download_folder}`;
 
 // Zoom URL Validation
 

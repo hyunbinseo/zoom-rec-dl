@@ -1,5 +1,3 @@
 {
-	"download": {
-		"folder": "downloads"
-	}
+	"download_folder": "downloads"
 }
