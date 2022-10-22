@@ -1,6 +1,6 @@
 # zoom-rec-dl
 
-Cross-platform Zoom cloud recordings download script.
+Save Zoom cloud recordings to a local directory. A cross-platform video download script.
 
 ## Requirement
 
@@ -14,6 +14,16 @@ Cross-platform Zoom cloud recordings download script.
 3. Enter Zoom URLs in the `urls.json` file.
 4. Open a terminal in the same directory.
 5. Run `node index.mjs` command.
+
+## Explanation
+
+The script works by
+
+1. Requesting a Zoom URL.
+2. Extracting MP4 file URL(s).
+3. Downloading MP4 files one by one.
+4. Repeating `1-3` for all Zoom URLs.
+5. Logging any failed attempts.
 
 ## Customization
 
