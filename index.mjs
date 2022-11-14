@@ -162,6 +162,8 @@ for await (const url of urls) {
 		]
 			.filter((value) => (value))
 			.join(' ')
+			.replaceAll(' / ', ', ')
+			.replaceAll(': ', ' - ')
 			.replaceAll(/[<>:"/\\|?*]/g, '_')
 			.concat('.mp4');
 
