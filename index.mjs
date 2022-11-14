@@ -18,11 +18,25 @@ const regex = {
 	setCookie: /([^,= ]+=[^,;]+);? *(?:[^,= ]+(?:=(?:Mon,|Tue,|Wed,|Thu,|Fri,|Sat,|Sun,)?[^,;]+)?;? *)*/g
 };
 
+const styles = {
+	underscore: '\x1b[4m',
+	red: '\x1b[31m',
+	yellow: '\x1b[33m',
+	magenta: '\x1b[35m',
+	cyan: '\x1b[36m'
+};
+
+/**
+ * @param {keyof typeof styles} style 
+ * @param {string | number} text 
+ */
+const styleText = (style, text) => (`${styles[style]}${text}\x1b[0m`);
+
 /**
  * @param {'' | '├─' | '└─'} type
  * @param {string} message
  */
-const message = (type, message) => (`${new Date().toISOString()} ${type ? `${type} ${message}` : message}`);
+const message = (type, message) => (`${styleText('cyan', new Date().toISOString())}  ${type ? `${type} ${message}` : message}`);
 
 // Runtime Validation
 
@@ -64,7 +78,8 @@ const failedVideoUrls = [];
 for await (const url of urls) {
 	const [, id] = (url.match(regex.zoomShare) || []);
 
-	console.log(message('', `Processing ${id}`));
+	console.log();
+	console.log(message('', `Processing ${styleText('magenta', id)}`));
 
 	const headers = new Headers({
 		// Chrome 106 on Windows 11
@@ -75,7 +90,7 @@ for await (const url of urls) {
 
 	// Redirect response with a Set-Cookie header expected
 	if (!initialResponse.ok || !initialResponse.redirected) {
-		console.error(message('└─', 'Initial fetch has failed.'));
+		console.error(message('└─', styleText('red', 'Initial fetch has failed.')));
 		failedShareUrls.push(url);
 		continue;
 	};
@@ -98,7 +113,7 @@ for await (const url of urls) {
 	const downloadPageResponse = await fetch(url, { headers });
 
 	if (!downloadPageResponse.ok) {
-		console.error(message('└─', 'Download page fetch has failed.'));
+		console.error(message('└─', styleText('red', 'Download page fetch has failed.')));
 		failedShareUrls.push(url);
 		continue;
 	};
@@ -108,7 +123,7 @@ for await (const url of urls) {
 		.map(([url, filename]) => ({ url, filename }));
 
 	if (!videoUrlMatches.length) {
-		console.error(message('└─', 'Video URL is not found.'));
+		console.error(message('└─', styleText('red', 'Video URL is not found.')));
 		failedShareUrls.push(url);
 		continue;
 	};
@@ -119,12 +134,12 @@ for await (const url of urls) {
 	headers.append('Referer', 'https://zoom.us/');
 
 	for await (const { url, filename } of videoUrlMatches) {
-		console.log(message('├─', `Downloading ${filename}`));
+		console.log(message('├─', `Downloading ${styleText('yellow', filename)}`));
 
 		const response = await fetch(url, { headers });
 
 		if (!response.ok) {
-			console.error(message('├─', 'Video fetch has failed. Skipping.'));
+			console.error(message('├─', styleText('red', 'Video fetch has failed. Skipping.')));
 			failedVideoUrls.push(url);
 			continue;
 		};
@@ -153,11 +168,11 @@ for await (const url of urls) {
 		await new Promise((resolve) => {
 			readable.on('end', () => {
 				renameSync(`${downloadFolder}/${temporaryFilename}`, `${downloadFolder}/${customFilename}`);
-				console.log(message('├─', `Saved as ${customFilename}`));
+				console.log(message('├─', `Saved as ${styleText('underscore', customFilename)}`));
 				resolve();
 			});
 			readable.on('error', () => {
-				console.error(message('├─', 'Download has failed. Skipping.'));
+				console.error(message('├─', styleText('red', 'Download has failed. Skipping.')));
 				failedVideoUrls.push(url);
 				resolve();
 			});
@@ -167,9 +182,11 @@ for await (const url of urls) {
 	console.log(message('└─', 'Completed.'));
 };
 
+console.log();
 console.log(message('', 'All downloads are completed.'));
 
 if (failedShareUrls.length || failedVideoUrls.length) {
+	const count = failedShareUrls.length + failedVideoUrls.length;
 	const log = [
 		`Failed Zoom Share URL (${failedShareUrls.length}) - Check if the URL is password protected`,
 		...failedShareUrls,
@@ -179,6 +196,6 @@ if (failedShareUrls.length || failedVideoUrls.length) {
 	].join('\n');
 	const filename = `${Date.now()}.txt`;
 	writeFileSync(`${__dirname}/${filename}`, log);
-	console.log(message('├─', `There are ${failedShareUrls.length + failedVideoUrls.length} failed attempts.`));
-	console.log(message('└─', `Check ${filename} for more information.`));
+	console.log(message('├─', `There are ${styleText('red', count)} failed attempts.`));
+	console.log(message('└─', `Check ${styleText('underscore', filename)} for more information.`));
 };
