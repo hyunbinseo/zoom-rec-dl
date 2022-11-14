@@ -10,9 +10,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const regex = {
-	// Reference Zoom Vanity URL https://support.zoom.us/hc/en-us/articles/215062646
 	zoomSample: /^https:\/\/zoom.us\/rec\/share\/something-unique-[1-9]\?pwd=something-strong-[1-9]$/,
-	zoomShare: /^https:\/\/(?:([a-z][a-z\-]{2,}[a-z])\.)?(zoom.us|zoomgov.com)\/rec\/share\/([^?\s]+)\?pwd=([^?\s]+)$/,
+	// Zoom Vanity URLs should be at least 4 characters in length, but there are real-world examples that are shorter.
+	// Reference 'Guidelines for Vanity URL requests' documentation https://support.zoom.us/hc/en-us/articles/215062646
+	zoomShare: /^https:\/\/(?:([a-z][a-z\-]{1,}[a-z])\.)?(zoom.us|zoomgov.com)\/rec\/share\/([^?\s]+)\?pwd=([^?\s]+)$/,
 	zoomVideo: /https:\/\/ssrweb\..+\/(.+)\.mp4[^'"]+/g,
 	zoomTopic: /topic: "(.+)",/,
 	setCookie: /([^,= ]+=[^,;]+);? *(?:[^,= ]+(?:=(?:Mon,|Tue,|Wed,|Thu,|Fri,|Sat,|Sun,)?[^,;]+)?;? *)*/g
