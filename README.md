@@ -5,7 +5,7 @@ Save Zoom cloud recordings to a local directory. A cross-platform video download
 ## Requirement
 
 - Windows, macOS, and Linux. Any operating system that supports [Node.js](https://nodejs.org/) v18 or later.
-- Zoom URL[^1] that includes a password. (e.g. `https://zoom.us/rec/share/id?pwd=password`)
+- Zoom record share URL[^1] that does not require a password. Check the [examples](urls.json).
 
 ## Instruction
 

@@ -1,11 +1,6 @@
 [
-	"https://zoom.us/rec/share/something-unique-1?pwd=something-strong-1",
-	"https://zoom.us/rec/share/something-unique-2?pwd=something-strong-2",
-	"https://zoom.us/rec/share/something-unique-3?pwd=something-strong-3",
-	"https://zoom.us/rec/share/something-unique-4?pwd=something-strong-4",
-	"https://zoom.us/rec/share/something-unique-5?pwd=something-strong-5",
-	"https://zoom.us/rec/share/something-unique-6?pwd=something-strong-6",
-	"https://zoom.us/rec/share/something-unique-7?pwd=something-strong-7",
-	"https://zoom.us/rec/share/something-unique-8?pwd=something-strong-8",
-	"https://zoom.us/rec/share/something-unique-9?pwd=something-strong-9"
+	"https://subdomain.zoom.us/rec/share/something-unique-and-very-long-can-include-symbols-such-as-period-dash-underscore?pwd=abcdefghijklnmopqrstuvwxyz012345",
+	"https://subdomain.zoom.us/rec/share/something-unique-and-very-long-can-include-symbols-such-as-period-dash-underscore",
+	"https://zoom.us/rec/share/something-unique-and-very-long-can-include-symbols-such-as-period-dash-underscore?pwd=abcdefghijklnmopqrstuvwxyz012345",
+	"https://zoom.us/rec/share/something-unique-and-very-long-can-include-symbols-such-as-period-dash-underscore"
 ]

@@ -10,10 +10,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const regex = {
-	zoomSample: /^https:\/\/zoom.us\/rec\/share\/something-unique-[1-9]\?pwd=something-strong-[1-9]$/,
 	// Zoom Vanity URLs should be at least 4 characters in length, but there are real-world examples that are shorter.
 	// Reference 'Guidelines for Vanity URL requests' documentation https://support.zoom.us/hc/en-us/articles/215062646
-	zoomShare: /^https:\/\/(?:([a-z][a-z\-]{1,}[a-z])\.)?(zoom.us|zoomgov.com)\/rec\/share\/([^?\s]+)\?pwd=([^?\s]+)$/,
+	zoomShare: /^https:\/\/(?:[a-z][a-z\-]{1,}[a-z]\.)?(?:zoom.us|zoomgov.com)\/rec\/share\/([^?\s]+)(?:\?pwd=[^?\s]+)?$/,
 	zoomVideo: /https:\/\/ssrweb\..+\/(.+)\.mp4[^'"]+/g,
 	zoomTopic: /topic: "(.+)",/,
 	setCookie: /([^,= ]+=[^,;]+);? *(?:[^,= ]+(?:=(?:Mon,|Tue,|Wed,|Thu,|Fri,|Sat,|Sun,)?[^,;]+)?;? *)*/g
@@ -47,7 +46,8 @@ if (!urls.length) throw new Error('Zoom URLs are not found.');
 for (const url of urls) {
 	if (typeof url !== 'string') throw new Error('Zoom URL should be a string.');
 	if (!regex.zoomShare.test(url)) throw new Error(`Zoom URL is not valid. (${url})`);
-	if (regex.zoomSample.test(url)) throw new Error('Sample Zoom URL is found. Remove if from the urls.json file.');
+	if (url.includes('something-unique-and-very-long-can-include-symbols-such-as-period-dash-underscore'))
+		throw new Error('Sample Zoom URL is found. Remove it from the urls.json file.');
 };
 
 // Download Video Files
@@ -56,7 +56,7 @@ const failedShareUrls = [];
 const failedVideoUrls = [];
 
 for await (const url of urls) {
-	const id = (url.match(regex.zoomShare) || [])[3] || '';
+	const [, id] = (url.match(regex.zoomShare) || []);
 
 	console.log();
 	console.log(new Date().toISOString());
@@ -169,14 +169,14 @@ console.log(new Date().toISOString());
 console.log('All downloads are completed.');
 
 if (failedShareUrls.length || failedVideoUrls.length) {
-	const filename = `${Date.now()}.txt`;
 	const log = [
-		`Failed Zoom Share URL (${failedShareUrls.length})`,
+		`Failed Zoom Share URL (${failedShareUrls.length}) - Check if the URL is password protected`,
 		...failedShareUrls,
 		'',
 		`Failed Zoom Video URL (${failedVideoUrls.length})`,
 		...failedVideoUrls
 	].join('\n');
+	const filename = `${Date.now()}.txt`;
 	writeFileSync(`${__dirname}/${filename}`, log);
 	console.error(`Failed attempts found. Check ${filename} for more information.`);
 };
