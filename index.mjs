@@ -18,6 +18,8 @@ const regex = {
 	setCookie: /([^,= ]+=[^,;]+);? *(?:[^,= ]+(?:=(?:Mon,|Tue,|Wed,|Thu,|Fri,|Sat,|Sun,)?[^,;]+)?;? *)*/g
 };
 
+const printCurrentTime = () => (new Date().toISOString());
+
 // Runtime Validation
 
 if (typeof (fetch) === 'undefined') throw new Error('Fetch API is not supported. Use Node.js v18 or later.');
@@ -58,9 +60,7 @@ const failedVideoUrls = [];
 for await (const url of urls) {
 	const [, id] = (url.match(regex.zoomShare) || []);
 
-	console.log();
-	console.log(new Date().toISOString());
-	if (id) console.log(id);
+	console.log(printCurrentTime(), `Processing ${id}`);
 
 	const headers = new Headers({
 		// Chrome 106 on Windows 11
@@ -71,7 +71,7 @@ for await (const url of urls) {
 
 	// Redirect response with a Set-Cookie header expected
 	if (!initialResponse.ok || !initialResponse.redirected) {
-		console.error('Initial fetch has failed. Skipping.');
+		console.error(printCurrentTime(), '└─', 'Initial fetch has failed.');
 		failedShareUrls.push(url);
 		continue;
 	};
@@ -94,7 +94,7 @@ for await (const url of urls) {
 	const downloadPageResponse = await fetch(url, { headers });
 
 	if (!downloadPageResponse.ok) {
-		console.error('Download page fetch has failed. Skipping.');
+		console.error(printCurrentTime(), '└─', 'Download page fetch has failed.');
 		failedShareUrls.push(url);
 		continue;
 	};
@@ -104,7 +104,7 @@ for await (const url of urls) {
 		.map(([url, filename]) => ({ url, filename }));
 
 	if (!videoUrlMatches.length) {
-		console.error('Video URL is not found. Skipping.');
+		console.error(printCurrentTime(), '└─', 'Video URL is not found.');
 		failedShareUrls.push(url);
 		continue;
 	};
@@ -115,13 +115,12 @@ for await (const url of urls) {
 	headers.append('Referer', 'https://zoom.us/');
 
 	for await (const { url, filename } of videoUrlMatches) {
-		console.log();
-		console.log(`Downloading ${filename}`);
+		console.log(printCurrentTime(), '├─', `Downloading ${filename}`);
 
 		const response = await fetch(url, { headers });
 
 		if (!response.ok) {
-			console.error('Video fetch has failed. Skipping.');
+			console.error(printCurrentTime(), '├─', 'Video fetch has failed. Skipping.');
 			failedVideoUrls.push(url);
 			continue;
 		};
@@ -150,23 +149,21 @@ for await (const url of urls) {
 		await new Promise((resolve) => {
 			readable.on('end', () => {
 				renameSync(`${downloadFolder}/${temporaryFilename}`, `${downloadFolder}/${customFilename}`);
-				console.log(`Saved as ${customFilename}`);
+				console.log(printCurrentTime(), '├─', `Saved as ${customFilename}`);
 				resolve();
 			});
 			readable.on('error', () => {
-				console.error(`Download has failed.`);
+				console.error(printCurrentTime(), '├─', 'Download has failed. Skipping.');
 				failedVideoUrls.push(url);
 				resolve();
 			});
 		});
 	};
 
-	console.log();
+	console.log(printCurrentTime(), '└─', 'Completed.');
 };
 
-console.log();
-console.log(new Date().toISOString());
-console.log('All downloads are completed.');
+console.log(printCurrentTime(), 'All downloads are completed.');
 
 if (failedShareUrls.length || failedVideoUrls.length) {
 	const log = [
@@ -178,5 +175,6 @@ if (failedShareUrls.length || failedVideoUrls.length) {
 	].join('\n');
 	const filename = `${Date.now()}.txt`;
 	writeFileSync(`${__dirname}/${filename}`, log);
-	console.error(`Failed attempts found. Check ${filename} for more information.`);
+	console.log(printCurrentTime(), '├─', `There are ${failedShareUrls.length + failedVideoUrls.length} failed attempts.`);
+	console.log(printCurrentTime(), '└─', `Check ${filename} for more information.`);
 };
