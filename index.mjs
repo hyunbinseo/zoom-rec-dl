@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 const regex = {
 	// Zoom Vanity URLs should be at least 4 characters in length, but there are real-world examples that are shorter.
 	// Reference 'Guidelines for Vanity URL requests' documentation https://support.zoom.us/hc/en-us/articles/215062646
-	zoomShare: /^https:\/\/(?:[a-z][a-z\-]{1,}[a-z]\.)?(?:zoom.us|zoomgov.com)\/rec\/share\/([^?\s]+)(?:\?pwd=[^?\s]+)?$/,
+	zoomShare: /^https:\/\/(?:(?:[a-z][a-z\-]{1,}[a-z]|us[0-9]{2}web)\.)?(?:zoom.us|zoomgov.com)\/rec\/share\/([^?\s]+)(?:\?pwd=[^?\s]+)?$/,
 	zoomVideo: /https:\/\/ssrweb\..+\/(.+)\.mp4[^'"]+/g,
 	zoomTopic: /topic: "(.+)",/,
 	setCookie: /([^,= ]+=[^,;]+);? *(?:[^,= ]+(?:=(?:Mon,|Tue,|Wed,|Thu,|Fri,|Sat,|Sun,)?[^,;]+)?;? *)*/g
