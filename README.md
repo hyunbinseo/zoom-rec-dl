@@ -2,30 +2,74 @@
 
 Save Zoom cloud recordings to a local directory. A cross-platform video download script.
 
-## Requirement
+## Requirements
 
 - Windows, macOS, and Linux. Any operating system that supports [Node.js](https://nodejs.org/) v18 or later.
-- Zoom record share URL[^1] that does not require a password. Check the [examples](urls.json).
+- Zoom cloud recording share link that does not require any additional authentication. [^1]
 
-## Instruction
+---
 
-1. [Download](https://nodejs.org/en/download/) and install[^2] Node.js v18 or later.
-2. [Download](https://github.com/hyunbinseo/zoom-rec-dl/archive/refs/heads/main.zip) and unzip[^3] the source code.
-3. Enter Zoom URLs in the `urls.json` file.
-4. Open a terminal in the same directory.
-5. Run `node index.mjs` command.
+For protected cloud recordings, the passcode should be embedded in the shareable link.
 
-## Explanation
+Reference the [documentation](https://support.zoom.us/hc/en-us/articles/11692220055821) and enable the following settings in the Zoom web portal.
 
-The script works by
+✅ Require passcode to access shared cloud recordings\
+✅ Embed passcode in the shareable link for one-click access
 
-1. Requesting a Zoom URL.
-2. Extracting MP4 file URL(s).
-3. Downloading MP4 files one by one.
-4. Repeating `1-3` for all Zoom URLs.
-5. Logging any failed attempts.
+## Instructions
 
-## Customization
+> **Note**
+> Cloud recordings will be downloaded inside the unzipped folder.
+
+1. [Download](https://github.com/hyunbinseo/zoom-rec-dl/archive/refs/heads/main.zip) and unzip the code in a desired location.
+2. Add cloud recording share links to the `urls.json` file.
+3. [Download](https://nodejs.org/en/download/) and install [Node.js](https://nodejs.org/). Check `Add to PATH` option.
+4. Open a terminal in the unzipped folder where `index.mjs` exists.
+5. Run `node index.mjs`
+
+---
+
+If the following error occurs, the terminal is not opened in the correct location.
+
+```
+node:internal/modules/cjs/loader:1042
+  throw err;
+  ^
+
+Error: Cannot find module '/Users/username/.../index.mjs'
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1039:15)
+    at Module._load (node:internal/modules/cjs/loader:885:27)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:81:12)
+    at node:internal/main/run_main_module:23:47 {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: []
+}
+
+Node.js v18.13.0
+```
+
+Check if `index.mjs` is listed by running `ls` or `dir` command in the terminal.
+
+```
+# macOS Terminal
+# Windows PowerShell
+
+% ls
+README.md	index.mjs	package.json	urls.json
+downloads	jsconfig.json	settings.json
+```
+
+```
+# Windows Command Prompt (cmd.exe)
+# Windows PowerShell
+
+> dir
+2023-01-06  오전 09:34             7,374 index.mjs
+2023-01-06  오전 09:34               104 settings.json
+2023-01-06  오전 09:34               545 urls.json
+```
+
+## Customizations
 
 Edit the `settings.json` file if necessary.
 
@@ -38,5 +82,3 @@ Edit the `settings.json` file if necessary.
 ```
 
 [^1]: Should show a video player and a download button. Should not show an 'Enter the passcode to watch' message.
-[^2]: Node.js should be added to PATH. When `node -v` command is run, it should show a version number. (e.g. `v18.10.0`)
-[^3]: The video files will be downloaded in the same folder. A subdirectory called 'downloads' will be created and used.
