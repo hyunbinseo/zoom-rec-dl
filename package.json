@@ -2,5 +2,6 @@
   "bugs": {
     "url": "https://github.com/hyunbinseo/zoom-rec-dl/issues"
   },
-  "homepage": "https://github.com/hyunbinseo/zoom-rec-dl#readme"
+  "homepage": "https://github.com/hyunbinseo/zoom-rec-dl#readme",
+  "type": "module"
 }

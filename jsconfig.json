@@ -1,7 +1,7 @@
 {
-	"compilerOptions": {
-		"checkJs": true,
-		"module": "NodeNext",
-		"resolveJsonModule": true
-	}
+  "compilerOptions": {
+    "checkJs": true,
+    "module": "NodeNext",
+    "resolveJsonModule": true
+  }
 }
