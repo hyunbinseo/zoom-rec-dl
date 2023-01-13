@@ -19,8 +19,8 @@ const regex = {
 	// Zoom Vanity URLs should be at least 4 characters in length, but there are real-world examples that are shorter.
 	// Reference 'Guidelines for Vanity URL requests' documentation https://support.zoom.us/hc/en-us/articles/215062646
 	zoomShare:
-		/^https:\/\/(?:(?:[a-z][a-z\-]{1,}[a-z]|us[0-9]{2}web)\.)?(?:zoom.us|zoomgov.com)\/rec\/share\/([^?\s]+)(?:\?pwd=[^?\s]+)?$/,
-	zoomVideo: /https:\/\/ssrweb\..+\/(.+)\.mp4[^'"]+/g,
+		/^https:\/\/(?:(?:[a-z][a-z\-]{1,}[a-z]|us[0-9]{2}web)\.)?(?:zoom.us|zoomgov.com)\/rec\/(?:share|play)\/([^?\s]+)(?:\?pwd=[^?\s]+)?$/,
+	zoomFiles: /https:\/\/ssrweb\..+\/((?:.+)\.(?:mp4|m4a))[^'"]+/g,
 	zoomTopic: /topic: "(.+)",/,
 	setCookie:
 		/([^,= ]+=[^,;]+);? *(?:[^,= ]+(?:=(?:Mon,|Tue,|Wed,|Thu,|Fri,|Sat,|Sun,)?[^,;]+)?;? *)*/g,
@@ -91,10 +91,10 @@ for (const url of urls) {
 		);
 }
 
-// Download Video Files
+// Download Media Files
 
 const failedShareUrls = [];
-const failedVideoUrls = [];
+const failedMediaUrls = [];
 
 for await (const url of urls) {
 	const [, id] = url.match(regex.zoomShare) || [];
@@ -108,16 +108,15 @@ for await (const url of urls) {
 			'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36',
 	});
 
-	const initialResponse = await fetch(url, { headers });
+	let response = await fetch(url, { headers });
 
-	// Redirect response with a Set-Cookie header expected
-	if (!initialResponse.ok || !initialResponse.redirected) {
+	if (!response.ok) {
 		console.error(message('└─', styleText('red', 'Initial fetch has failed.')));
 		failedShareUrls.push(url);
 		continue;
 	}
 
-	const setCookieString = initialResponse.headers.get('set-cookie');
+	const setCookieString = response.headers.get('set-cookie');
 
 	// Node.js Fetch API merges Set-Cookie headers into a single string
 	// This behavior can change, since Fetch API is an experimental feature.
@@ -133,25 +132,30 @@ for await (const url of urls) {
 
 	headers.append('Cookie', cookieString);
 
-	// Re-request the video download page with authentication cookie (_zm_ssid)
-	// Returns different response based on the User-Agent (e.g. global data)
-	const downloadPageResponse = await fetch(url, { headers });
+	if (response.redirected) {
+		// Re-request the media download page with authentication cookie (_zm_ssid)
+		// Returns different response based on the User-Agent (e.g. global data)
+		const downloadPageResponse = await fetch(url, { headers });
 
-	if (!downloadPageResponse.ok) {
-		console.error(
-			message('└─', styleText('red', 'Download page fetch has failed.'))
-		);
-		failedShareUrls.push(url);
-		continue;
+		if (!downloadPageResponse.ok) {
+			console.error(
+				message('└─', styleText('red', 'Download page fetch has failed.'))
+			);
+			failedShareUrls.push(url);
+			continue;
+		}
+
+		response = downloadPageResponse;
 	}
 
-	const downloadPageHtml = await downloadPageResponse.text();
-	const videoUrlMatches = [...downloadPageHtml.matchAll(regex.zoomVideo)].map(
+	const downloadPageHtml = await response.text();
+
+	const mediaUrlMatches = [...downloadPageHtml.matchAll(regex.zoomFiles)].map(
 		([url, filename]) => ({ url, filename })
 	);
 
-	if (!videoUrlMatches.length) {
-		console.error(message('└─', styleText('red', 'Video URL is not found.')));
+	if (!mediaUrlMatches.length) {
+		console.error(message('└─', styleText('red', 'Media URL is not found.')));
 		failedShareUrls.push(url);
 		continue;
 	}
@@ -163,16 +167,16 @@ for await (const url of urls) {
 	// Required to prevent 403 Forbidden error
 	headers.append('Referer', 'https://zoom.us/');
 
-	for await (const { url, filename } of videoUrlMatches) {
+	for await (const { url, filename } of mediaUrlMatches) {
 		console.log(message('├─', `Downloading ${styleText('yellow', filename)}`));
 
 		const response = await fetch(url, { headers });
 
 		if (!response.ok) {
 			console.error(
-				message('├─', styleText('red', 'Video fetch has failed. Skipping.'))
+				message('├─', styleText('red', 'Media fetch has failed. Skipping.'))
 			);
-			failedVideoUrls.push(url);
+			failedMediaUrls.push(url);
 			continue;
 		}
 
@@ -198,8 +202,7 @@ for await (const url of urls) {
 			.join(' ')
 			.replaceAll(' / ', ', ')
 			.replaceAll(': ', ' - ')
-			.replaceAll(/[<>:"/\\|?*]/g, '_')
-			.concat('.mp4');
+			.replaceAll(/[<>:"/\\|?*]/g, '_');
 
 		await new Promise((resolve) => {
 			readable.on('end', () => {
@@ -216,7 +219,7 @@ for await (const url of urls) {
 				console.error(
 					message('├─', styleText('red', 'Download has failed. Skipping.'))
 				);
-				failedVideoUrls.push(url);
+				failedMediaUrls.push(url);
 				resolve();
 			});
 		});
@@ -228,14 +231,14 @@ for await (const url of urls) {
 console.log();
 console.log(message('', 'All downloads are completed.'));
 
-if (failedShareUrls.length || failedVideoUrls.length) {
-	const count = failedShareUrls.length + failedVideoUrls.length;
+if (failedShareUrls.length || failedMediaUrls.length) {
+	const count = failedShareUrls.length + failedMediaUrls.length;
 	const log = [
 		`Failed Zoom Share URL (${failedShareUrls.length}) - Check if the URL is password protected`,
 		...failedShareUrls,
 		'',
-		`Failed Zoom Video URL (${failedVideoUrls.length})`,
-		...failedVideoUrls,
+		`Failed Zoom Media URL (${failedMediaUrls.length})`,
+		...failedMediaUrls,
 	].join('\n');
 	const filename = `${Date.now()}.txt`;
 	writeFileSync(`${__dirname}/${filename}`, log);

@@ -1,6 +1,6 @@
 # zoom-rec-dl
 
-Save Zoom cloud recordings to a local directory. A cross-platform video download script.
+Save Zoom cloud recordings to a local directory. A cross-platform video and audio download script.
 
 ## Requirements
 
@@ -81,4 +81,4 @@ Edit the `settings.json` file if necessary.
 }
 ```
 
-[^1]: Should show a video player and a download button. Should not show an 'Enter the passcode to watch' message.
+[^1]: Should show a media player and a download button. Should not show an 'Enter the passcode to watch' message.
