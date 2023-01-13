@@ -61,6 +61,7 @@ const { download_folder, filename_meeting_topic, filename_unix_timestamp } =
 
 if (typeof download_folder !== 'string')
 	throw new Error('download_folder should be a string.');
+
 if (!/^[a-z]+$/.test(download_folder))
 	throw new Error(`download_folder is not valid. (${download_folder})`);
 
@@ -68,6 +69,7 @@ const downloadFolder = `${__dirname}/${download_folder}`;
 
 if (typeof filename_meeting_topic !== 'boolean')
 	throw new Error('filename_meeting_topic should be a boolean');
+
 if (typeof filename_unix_timestamp !== 'boolean')
 	throw new Error('filename_unix_timestamp should be a boolean');
 
@@ -75,20 +77,21 @@ if (typeof filename_unix_timestamp !== 'boolean')
 
 if (!Array.isArray(urls))
 	throw new Error('The urls.json file should be an array.');
-if (!urls.length) throw new Error('Zoom URLs are not found.');
+
+if (!urls.length) throw new Error('No Zoom URLs are found.');
 
 for (const url of urls) {
 	if (typeof url !== 'string') throw new Error('Zoom URL should be a string.');
+
 	if (!regex.zoomShare.test(url))
 		throw new Error(`Zoom URL is not valid. (${url})`);
+
 	if (
 		url.includes(
 			'something-unique-and-very-long-can-include-symbols-such-as-period-dash-underscore'
 		)
 	)
-		throw new Error(
-			'Sample Zoom URL is found. Remove it from the urls.json file.'
-		);
+		throw new Error('Remove sample URLs from the urls.json file.');
 }
 
 // Download Media Files
@@ -155,7 +158,7 @@ for await (const url of urls) {
 	);
 
 	if (!mediaUrlMatches.length) {
-		console.error(message('└─', styleText('red', 'Media URL is not found.')));
+		console.error(message('└─', styleText('red', 'No media URLs are found.')));
 		failedShareUrls.push(url);
 		continue;
 	}
@@ -231,24 +234,32 @@ for await (const url of urls) {
 console.log();
 console.log(message('', 'All downloads are completed.'));
 
-if (failedShareUrls.length || failedMediaUrls.length) {
-	const count = failedShareUrls.length + failedMediaUrls.length;
-	const log = [
-		`Failed Zoom Share URL (${failedShareUrls.length}) - Check if the URL is password protected`,
-		...failedShareUrls,
-		'',
-		`Failed Zoom Media URL (${failedMediaUrls.length})`,
-		...failedMediaUrls,
-	].join('\n');
+/**
+ * @param {string[]} urls
+ * @param {string} type
+ */
+const generateLog = (urls, type) =>
+	urls.length
+		? `${urls.length} ${type} URL(s) failed.\n` + urls.join('\n')
+		: '';
+
+const log = [
+	generateLog(failedShareUrls, 'share'),
+	generateLog(failedMediaUrls, 'media'),
+]
+	.filter((v) => v)
+	.join('\n\n');
+
+if (log) {
 	const filename = `${Date.now()}.txt`;
+
 	writeFileSync(`${__dirname}/${filename}`, log);
-	console.log(
-		message('├─', `There are ${styleText('red', count)} failed attempts.`)
-	);
+
+	console.log(message('├─', `There are failed attempt(s).`));
 	console.log(
 		message(
 			'└─',
-			`Check ${styleText('underscore', filename)} for more information.`
+			`Reference ${styleText('underscore', filename)} for more information.`
 		)
 	);
 }
