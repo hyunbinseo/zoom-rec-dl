@@ -75,9 +75,9 @@ Edit the `settings.json` file if necessary.
 
 ```jsonc
 {
-  "download_folder": "downloads", // string, lowercase alphabets only (a-z)
-  "filename_meeting_topic": true, // boolean
-  "filename_unix_timestamp": false // boolean
+	"download_folder": "downloads", // string, lowercase alphabets only (a-z)
+	"filename_meeting_topic": true, // boolean
+	"filename_unix_timestamp": false // boolean
 }
 ```
 
