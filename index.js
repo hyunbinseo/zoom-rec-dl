@@ -2,6 +2,7 @@ import {
 	createWriteStream,
 	existsSync,
 	mkdirSync,
+	readFileSync,
 	renameSync,
 	writeFileSync,
 } from 'node:fs';
@@ -10,7 +11,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import information from './package.json' assert { type: 'json' };
 import settings from './settings.json' assert { type: 'json' };
-import urls from './urls.json' assert { type: 'json' };
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -75,8 +75,9 @@ if (typeof filename_unix_timestamp !== 'boolean')
 
 // Zoom URL Validation
 
-if (!Array.isArray(urls))
-	throw new Error('The urls.json file should be an array.');
+const urls = readFileSync('urls.txt', { encoding: 'utf-8' })
+	.split(/\r?\n/)
+	.filter((v) => v);
 
 if (!urls.length) throw new Error('No Zoom URLs are found.');
 
@@ -91,7 +92,7 @@ for (const url of urls) {
 			'something-unique-and-very-long-can-include-symbols-such-as-period-dash-underscore'
 		)
 	)
-		throw new Error('Remove sample URLs from the urls.json file.');
+		throw new Error('Remove sample URLs from the urls.txt file.');
 }
 
 // Download Media Files

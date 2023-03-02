@@ -22,7 +22,7 @@ Reference the [documentation](https://support.zoom.us/hc/en-us/articles/11692220
 > Cloud recordings will be downloaded inside the unzipped folder.
 
 1. [Download](https://github.com/hyunbinseo/zoom-rec-dl/archive/refs/heads/main.zip) and unzip the code in a desired location.
-2. Add cloud recording share links to the `urls.json` file.
+2. Add cloud recording share links to the `urls.txt` file.
 3. [Download](https://nodejs.org/en/download/) and install [Node.js](https://nodejs.org/). Check `Add to PATH` option.
 4. Open a terminal in the unzipped folder where `index.js` exists.
 5. Run `node index.js` or `node index`
