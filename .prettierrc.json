@@ -1,0 +1,14 @@
+{
+	"htmlWhitespaceSensitivity": "ignore",
+	"quoteProps": "consistent",
+	"singleQuote": true,
+	"useTabs": true,
+	"overrides": [
+		{
+			"files": "*.md",
+			"options": {
+				"useTabs": false
+			}
+		}
+	]
+}

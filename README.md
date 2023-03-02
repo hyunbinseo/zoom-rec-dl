@@ -27,7 +27,7 @@ Reference the [documentation](https://support.zoom.us/hc/en-us/articles/11692220
 4. Open a terminal in the unzipped folder where `index.js` exists.
 5. Run `node index.js` or `node index`
 
----
+## Troubleshoot
 
 If the following error occurs, the terminal is not opened in the correct location.
 
@@ -48,15 +48,14 @@ Error: Cannot find module '/Users/username/.../index.js'
 Node.js v18.13.0
 ```
 
-Check if `index.js` is listed by running `ls` or `dir` command in the terminal.
+Check if the `index.js` file is listed by running the `ls` or `dir` command.
 
 ```
 # macOS Terminal
 # Windows PowerShell
 
 % ls
-README.md	index.js	package.json	urls.json
-downloads	jsconfig.json	settings.json
+README.md    index.js    jsconfig.json    package.json
 ```
 
 ```
@@ -64,9 +63,12 @@ downloads	jsconfig.json	settings.json
 # Windows PowerShell
 
 > dir
-2023-01-06  오전 09:34             7,374 index.js
-2023-01-06  오전 09:34               104 settings.json
-2023-01-06  오전 09:34               545 urls.json
+2023-03-02  10:50    <DIR>          .
+2023-03-02  10:50    <DIR>          ..
+2023-01-25  11:34             1,610 .gitignore
+2023-01-25  11:34             7,384 index.js
+2023-01-25  11:34               100 jsconfig.json
+2023-01-25  11:34               162 package.json
 ```
 
 ## Customizations
@@ -75,9 +77,9 @@ Edit the `settings.json` file if necessary.
 
 ```jsonc
 {
-	"download_folder": "downloads", // string, lowercase alphabets only (a-z)
-	"filename_meeting_topic": true, // boolean
-	"filename_unix_timestamp": false // boolean
+  "download_folder": "downloads", // string, lowercase alphabets only (a-z)
+  "filename_meeting_topic": true, // boolean
+  "filename_unix_timestamp": false // boolean
 }
 ```
 

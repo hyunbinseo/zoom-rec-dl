@@ -6,8 +6,5 @@
 	"editor.formatOnSave": true,
 	"editor.insertSpaces": false,
 	"files.eol": "\n",
-	"files.insertFinalNewline": true,
-	"prettier.quoteProps": "consistent",
-	"prettier.singleQuote": true,
-	"prettier.useTabs": true
+	"files.insertFinalNewline": true
 }
