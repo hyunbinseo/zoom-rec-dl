@@ -34,17 +34,10 @@ const styles = {
 	cyan: '\x1b[36m',
 };
 
-/**
- * @param {keyof typeof styles} style
- * @param {string | number} text
- */
-const styleText = (style, text) => `${styles[style]}${text}\x1b[0m`;
+const styleText = (style: keyof typeof styles, text: string | number) =>
+	`${styles[style]}${text}\x1b[0m`;
 
-/**
- * @param {'' | '├─' | '└─'} type
- * @param {string} message
- */
-const message = (type, message) =>
+const message = (type: '' | '├─' | '└─', message: string) =>
 	`${styleText('cyan', new Date().toISOString())}  ${
 		type ? `${type} ${message}` : message
 	}`;
@@ -208,7 +201,7 @@ for await (const url of urls) {
 			.replaceAll(': ', ' - ')
 			.replaceAll(/[<>:"/\\|?*]/g, '_');
 
-		await new Promise((resolve) => {
+		await new Promise<void>((resolve) => {
 			readable.on('end', () => {
 				renameSync(
 					`${downloadFolder}/${temporaryFilename}`,
@@ -235,11 +228,7 @@ for await (const url of urls) {
 console.log();
 console.log(message('', 'All downloads are completed.'));
 
-/**
- * @param {string[]} urls
- * @param {string} type
- */
-const generateLog = (urls, type) =>
+const generateLog = (urls: string[], type: string) =>
 	urls.length
 		? `${urls.length} ${type} URL(s) failed.\n` + urls.join('\n')
 		: '';

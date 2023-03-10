@@ -3,5 +3,12 @@
 		"url": "https://github.com/hyunbinseo/zoom-rec-dl/issues"
 	},
 	"homepage": "https://github.com/hyunbinseo/zoom-rec-dl#readme",
-	"type": "module"
+	"type": "module",
+	"devDependencies": {
+		"@types/node": "^18.15.0",
+		"typescript": "^4.9.5"
+	},
+	"engines": {
+		"node": ">=18"
+	}
 }
