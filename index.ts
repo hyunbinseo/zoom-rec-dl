@@ -39,13 +39,16 @@ type AnsiEscapeCode = keyof typeof ansiEscapeCodes;
 const styleText = (style: AnsiEscapeCode, text: string | number) =>
 	`${ansiEscapeCodes[style]}${text}\x1b[0m`;
 
+const generateColoredTimestamp = () =>
+	styleText('cyan', new Date().toISOString());
+
 const log = (
 	prefix: '' | '├─' | '└─',
 	message: string,
 	type: 'log' | 'error' = 'log'
 ) => {
-	const timestamp = styleText('cyan', new Date().toISOString());
-	const formattedMessage = `${timestamp} ${prefix}${prefix && ' '}${message}`;
+	const prefixedMessage = (prefix && `${prefix} `) + message;
+	const formattedMessage = `${generateColoredTimestamp()} ${prefixedMessage}`;
 	console[type](formattedMessage);
 };
 
@@ -191,6 +194,27 @@ for await (const url of recodingShareUrls) {
 			.replaceAll(': ', ' - ')
 			.replaceAll(/[<>:"/\\|?*]/g, '_');
 
+		const contentLength = Number(response.headers.get('content-length') || 0);
+
+		if (!Number.isNaN(contentLength) && contentLength) {
+			let cumulatedLength = 0;
+			let previousPercentage: number;
+			process.stdout.write(`${generateColoredTimestamp()} ${'-'.repeat(100)}`);
+			readable.on('data', ({ length }) => {
+				if (length === 0) return;
+				cumulatedLength += length;
+				const percentage = Math.round((cumulatedLength / contentLength) * 100);
+				if (previousPercentage === percentage) return;
+				process.stdout.cursorTo(25 + percentage);
+				process.stdout.write('#');
+				previousPercentage = percentage;
+				if (percentage === 100) {
+					process.stdout.clearLine(0);
+					process.stdout.cursorTo(0);
+				}
+			});
+		}
+
 		await new Promise<void>((resolve) => {
 			readable.on('end', () => {
 				renameSync(
@@ -206,6 +230,8 @@ for await (const url of recodingShareUrls) {
 				resolve();
 			});
 		});
+
+		readable.removeAllListeners();
 	}
 
 	log('└─', 'Completed.');
