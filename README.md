@@ -5,7 +5,9 @@ Save Zoom cloud recordings to a local directory. A cross-platform video and audi
 ## Requirements
 
 - Windows, macOS, and Linux. Any operating system that supports [Node.js](https://nodejs.org/) v18 or later.
-- Zoom cloud recording share link that does not require any additional authentication. [^1]
+- Zoom cloud recording share link that does not require any additional authentication.[^1]
+
+[^1]: Should show a media player and a download button. Should not show an 'Enter the passcode to watch' message.
 
 ---
 
@@ -24,8 +26,10 @@ Reference the [documentation](https://support.zoom.us/hc/en-us/articles/11692220
 1. [Download](https://github.com/hyunbinseo/zoom-rec-dl/archive/refs/heads/main.zip) and unzip the code in a desired location.
 2. Add cloud recording share links to the `urls.txt` file.
 3. [Download](https://nodejs.org/en/download/) and install [Node.js](https://nodejs.org/). Check `Add to PATH` option.
-4. Open a terminal in the unzipped folder where `index.js` exists.
+4. Open a terminal in the unzipped folder where `index.js` exists.[^2]
 5. Run `node index.js` or `node index`
+
+[^2]: In macOS Finder, drag the unzipped folder to the Terminal application icon. In Windows File Explorer, navigate into the unzipped folder, click on the address bar, type `CMD`, and press enter.
 
 ## Troubleshoot
 
@@ -81,5 +85,3 @@ Edit the `settings.json` file if necessary.
   "filename_unix_timestamp": false // boolean
 }
 ```
-
-[^1]: Should show a media player and a download button. Should not show an 'Enter the passcode to watch' message.
