@@ -53,21 +53,12 @@ const log = (
 	console[type](formattedMessage);
 };
 
-// Validation - Runtime
+// Validation
 
 if (typeof fetch === 'undefined')
 	throw new Error('Fetch API is not supported. Use Node.js v18 or later.');
 
-// Validation - URLs file
-
-const urlText = readFileSync('urls.txt', { encoding: 'utf-8' });
-
-if (
-	urlText.includes(
-		'something-unique-and-very-long-can-include-symbols-such-as-period-dash-underscore'
-	)
-)
-	throw new Error('Remove sample URLs from the urls.txt file.');
+if (!existsSync('./urls.txt')) throw new Error('urls.txt file is not found.');
 
 // Download Media Files
 
@@ -77,7 +68,9 @@ const failedMediaUrls = [];
 const downloadFolder = `${__dirname}/downloads`;
 if (!existsSync(downloadFolder)) mkdirSync(downloadFolder);
 
-const recodingShareUrls = urlText.split(/\r?\n/).filter((v) => v);
+const recodingShareUrls = readFileSync('./urls.txt', { encoding: 'utf-8' })
+	.split(/\r?\n/)
+	.filter((v) => v);
 
 log('', `Found ${recodingShareUrls.length} URLs.`);
 
