@@ -85,7 +85,7 @@ for await (const url of recodingShareUrls) {
     const meetingTopic = (initialPage.match(regex.zoomMeetingTopic)?.[1] || '').trim();
     let nextClipStartTime = -1;
     for (let i = 1; i < totalClipCount + 1; i++) {
-        log('├─', `Downloading clip ${i}/${totalClipCount}`);
+        log('├─', `Downloading part ${i}/${totalClipCount}`);
         let clipPage = initialPage;
         if (i !== 1 && nextClipStartTime !== -1) {
             const clipUrl = `${response.url}&startTime=${nextClipStartTime}`;
