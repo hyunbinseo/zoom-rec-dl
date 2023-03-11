@@ -197,22 +197,34 @@ for await (const url of recodingShareUrls) {
 		const contentLength = Number(response.headers.get('content-length') || 0);
 
 		if (!Number.isNaN(contentLength) && contentLength) {
+			process.stdout.write(`${generateColoredTimestamp()} ${'-'.repeat(100)}`);
+
 			let cumulatedLength = 0;
 			let previousPercentage: number;
-			process.stdout.write(`${generateColoredTimestamp()} ${'-'.repeat(100)}`);
-			readable.on('data', ({ length }) => {
+
+			const handleProgress = ({ length }: { length: number }) => {
 				if (length === 0) return;
+
 				cumulatedLength += length;
+
 				const percentage = Math.round((cumulatedLength / contentLength) * 100);
 				if (previousPercentage === percentage) return;
-				process.stdout.cursorTo(25 + percentage);
-				process.stdout.write('#');
+
 				previousPercentage = percentage;
+
 				if (percentage === 100) {
 					process.stdout.clearLine(0);
 					process.stdout.cursorTo(0);
+					readable.removeListener('data', handleProgress);
+					return;
 				}
-			});
+
+				// Write 100 # from 0% to 99%
+				process.stdout.cursorTo(25 + percentage);
+				process.stdout.write('#');
+			};
+
+			readable.on('data', handleProgress);
 		}
 
 		await new Promise<void>((resolve) => {
