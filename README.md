@@ -74,14 +74,3 @@ README.md    index.js    jsconfig.json    package.json
 2023-01-25  11:34               100 jsconfig.json
 2023-01-25  11:34               162 package.json
 ```
-
-## Customizations
-
-Edit the `settings.json` file if necessary.
-
-```jsonc
-{
-  "filename_meeting_topic": true, // boolean
-  "filename_unix_timestamp": false // boolean
-}
-```

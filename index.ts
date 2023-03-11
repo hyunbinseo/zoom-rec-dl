@@ -9,8 +9,6 @@ import {
 import { Readable } from 'node:stream';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import information from './package.json' assert { type: 'json' };
-import settings from './settings.json' assert { type: 'json' };
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -59,16 +57,6 @@ const log = (
 
 if (typeof fetch === 'undefined')
 	throw new Error('Fetch API is not supported. Use Node.js v18 or later.');
-
-// Validation - Setting
-
-const { filename_meeting_topic, filename_unix_timestamp } = settings;
-
-if (typeof filename_meeting_topic !== 'boolean')
-	throw new Error('filename_meeting_topic should be a boolean');
-
-if (typeof filename_unix_timestamp !== 'boolean')
-	throw new Error('filename_unix_timestamp should be a boolean');
 
 // Validation - URLs file
 
@@ -123,9 +111,7 @@ for await (const url of recodingShareUrls) {
 
 	// Node.js Fetch API merges Set-Cookie headers into a single string
 	if (typeof setCookieString !== 'string')
-		throw new Error(
-			`Set-Cookie is not a string. Please leave an issue in ${information.bugs.url}`
-		);
+		throw new Error(`Set-Cookie is not a string.`);
 
 	const cookieString = [...setCookieString.matchAll(regex.httpSetCookieHeader)]
 		.map(([, nameValue]) => nameValue)
@@ -156,7 +142,7 @@ for await (const url of recodingShareUrls) {
 		Number(initialPage.match(regex.zoomTotalClips)?.[0]) || 1;
 
 	const meetingTopic = (
-		initialPage.match(regex.zoomMeetingTopic)?.[1] || ''
+		initialPage.match(regex.zoomMeetingTopic)?.[1] || 'topic-not-found'
 	).trim();
 
 	let nextClipStartTime = -1;
@@ -210,18 +196,6 @@ for await (const url of recodingShareUrls) {
 			const readable = Readable.fromWeb(response.body);
 
 			readable.pipe(writeStream);
-
-			const customFilename = [
-				filename_meeting_topic ? meetingTopic : '',
-				filename,
-				filename_unix_timestamp ? `@${Date.now()}`.slice(0, -3) : '',
-			]
-				.filter((value) => value)
-				.join(' ')
-				.replaceAll(' / ', ', ')
-				.replaceAll(': ', ' - ')
-				.replaceAll(/[<>:"/\\|?*]/g, '_');
-
 			const contentLength = Number(response.headers.get('content-length') || 0);
 
 			if (!Number.isNaN(contentLength) && contentLength) {
@@ -261,10 +235,16 @@ for await (const url of recodingShareUrls) {
 
 			await new Promise<void>((resolve) => {
 				readable.on('end', () => {
+					const customFilename = `${meetingTopic} ${filename}`
+						.replaceAll(' / ', ', ')
+						.replaceAll(': ', ' - ')
+						.replaceAll(/[<>:"/\\|?*]/g, '_');
+
 					renameSync(
 						`${downloadFolder}/${temporaryFilename}`,
 						`${downloadFolder}/${customFilename}`
 					);
+
 					log('├─', `Saved as ${styleText('underscore', customFilename)}`);
 					resolve();
 				});
