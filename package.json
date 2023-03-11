@@ -28,6 +28,7 @@
 	},
 	"homepage": "https://github.com/hyunbinseo/zoom-rec-dl#readme",
 	"engines": {
-		"node": ">=18"
+		"node": ">=18",
+		"npm": ">=9"
 	}
 }

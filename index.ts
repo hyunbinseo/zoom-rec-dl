@@ -65,8 +65,9 @@ if (!existsSync('./urls.txt')) throw new Error('urls.txt file is not found.');
 const failedRecordingShareUrls = [];
 const failedMediaUrls = [];
 
-const downloadFolder = `${__dirname}/downloads`;
-if (!existsSync(downloadFolder)) mkdirSync(downloadFolder);
+const folderName = new Date().toISOString().replaceAll(' ', '-');
+const downloadDirectory = `${__dirname}/${folderName}`;
+if (!existsSync(downloadDirectory)) mkdirSync(downloadDirectory);
 
 const recodingShareUrls = readFileSync('./urls.txt', { encoding: 'utf-8' })
 	.split(/\r?\n/)
@@ -182,7 +183,7 @@ for await (const url of recodingShareUrls) {
 			const temporaryFilename = `${Date.now()}.part`;
 
 			const writeStream = createWriteStream(
-				`${downloadFolder}/${temporaryFilename}`
+				`${downloadDirectory}/${temporaryFilename}`
 			);
 
 			// @ts-ignore Reference https://stackoverflow.com/a/66629140/12817553
@@ -234,8 +235,8 @@ for await (const url of recodingShareUrls) {
 						.replaceAll(/[<>:"/\\|?*]/g, '_');
 
 					renameSync(
-						`${downloadFolder}/${temporaryFilename}`,
-						`${downloadFolder}/${customFilename}`
+						`${downloadDirectory}/${temporaryFilename}`,
+						`${downloadDirectory}/${customFilename}`
 					);
 
 					log('├─', `Saved as ${styleText('underscore', customFilename)}`);
@@ -257,7 +258,10 @@ for await (const url of recodingShareUrls) {
 
 console.log();
 
-log('', 'All downloads are completed.');
+log(
+	'',
+	`Download completed. Check the ${styleText('underscore', folderName)} folder.`
+);
 
 const generateLog = (urls: string[], type: string) =>
 	urls.length
