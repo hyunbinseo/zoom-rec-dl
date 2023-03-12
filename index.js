@@ -1,11 +1,6 @@
+#!/usr/bin/env node
 import { createWriteStream, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync, } from 'node:fs';
 import { Readable } from 'node:stream';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import information from './package.json' assert { type: 'json' };
-import settings from './settings.json' assert { type: 'json' };
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const regex = {
     httpSetCookieHeader: /([^,= ]+=[^,;]+);? *(?:[^,= ]+(?:=(?:Mon,|Tue,|Wed,|Thu,|Fri,|Sat,|Sun,)?[^,;]+)?;? *)*/g,
     zoomRecordingShareUrl: /^https:\/\/(?:(?:[a-z][a-z\-]{1,}[a-z]|us[0-9]{2}web)\.)?(?:zoom.us|zoomgov.com)\/rec\/(?:share|play)\/([^?\s]+)(?:\?pwd=[^?\s]+)?$/,
@@ -29,22 +24,22 @@ const log = (prefix, message, type = 'log') => {
     const formattedMessage = `${generateColoredTimestamp()} ${prefixedMessage}`;
     console[type](formattedMessage);
 };
+const safeName = (name) => name
+    .replaceAll(' / ', ', ')
+    .replaceAll(': ', ' - ')
+    .replaceAll(/[<>:"/\\|?*]/g, '-');
 if (typeof fetch === 'undefined')
     throw new Error('Fetch API is not supported. Use Node.js v18 or later.');
-const { filename_meeting_topic, filename_unix_timestamp } = settings;
-if (typeof filename_meeting_topic !== 'boolean')
-    throw new Error('filename_meeting_topic should be a boolean');
-if (typeof filename_unix_timestamp !== 'boolean')
-    throw new Error('filename_unix_timestamp should be a boolean');
-const urlText = readFileSync('urls.txt', { encoding: 'utf-8' });
-if (urlText.includes('something-unique-and-very-long-can-include-symbols-such-as-period-dash-underscore'))
-    throw new Error('Remove sample URLs from the urls.txt file.');
+if (!existsSync('./urls.txt'))
+    throw new Error('urls.txt file is not found.');
 const failedRecordingShareUrls = [];
 const failedMediaUrls = [];
-const downloadFolder = `${__dirname}/downloads`;
-if (!existsSync(downloadFolder))
-    mkdirSync(downloadFolder);
-const recodingShareUrls = urlText.split(/\r?\n/).filter((v) => v);
+const downloadDirectory = `./${safeName(new Date().toISOString())}`;
+if (!existsSync(downloadDirectory))
+    mkdirSync(downloadDirectory);
+const recodingShareUrls = readFileSync('./urls.txt', { encoding: 'utf-8' })
+    .split(/\r?\n/)
+    .filter((v) => v);
 log('', `Found ${recodingShareUrls.length} URLs.`);
 for await (const url of recodingShareUrls) {
     console.log();
@@ -65,7 +60,7 @@ for await (const url of recodingShareUrls) {
     }
     const setCookieString = response.headers.get('set-cookie');
     if (typeof setCookieString !== 'string')
-        throw new Error(`Set-Cookie is not a string. Please leave an issue in ${information.bugs.url}`);
+        throw new Error(`Set-Cookie is not a string.`);
     const cookieString = [...setCookieString.matchAll(regex.httpSetCookieHeader)]
         .map(([, nameValue]) => nameValue)
         .join(';');
@@ -82,7 +77,7 @@ for await (const url of recodingShareUrls) {
     headers.append('Referer', 'https://zoom.us/');
     const initialPage = await response.text();
     const totalClipCount = Number(initialPage.match(regex.zoomTotalClips)?.[0]) || 1;
-    const meetingTopic = (initialPage.match(regex.zoomMeetingTopic)?.[1] || '').trim();
+    const meetingTopic = (initialPage.match(regex.zoomMeetingTopic)?.[1] || 'topic-not-found').trim();
     let nextClipStartTime = -1;
     for (let i = 1; i < totalClipCount + 1; i++) {
         log('├─', `Downloading part ${i}/${totalClipCount}`);
@@ -113,19 +108,9 @@ for await (const url of recodingShareUrls) {
                 continue;
             }
             const temporaryFilename = `${Date.now()}.part`;
-            const writeStream = createWriteStream(`${downloadFolder}/${temporaryFilename}`);
+            const writeStream = createWriteStream(`${downloadDirectory}/${temporaryFilename}`);
             const readable = Readable.fromWeb(response.body);
             readable.pipe(writeStream);
-            const customFilename = [
-                filename_meeting_topic ? meetingTopic : '',
-                filename,
-                filename_unix_timestamp ? `@${Date.now()}`.slice(0, -3) : '',
-            ]
-                .filter((value) => value)
-                .join(' ')
-                .replaceAll(' / ', ', ')
-                .replaceAll(': ', ' - ')
-                .replaceAll(/[<>:"/\\|?*]/g, '_');
             const contentLength = Number(response.headers.get('content-length') || 0);
             if (!Number.isNaN(contentLength) && contentLength) {
                 process.stdout.write(`${generateColoredTimestamp()} ${'-'.repeat(100)}`);
@@ -152,7 +137,8 @@ for await (const url of recodingShareUrls) {
             }
             await new Promise((resolve) => {
                 readable.on('end', () => {
-                    renameSync(`${downloadFolder}/${temporaryFilename}`, `${downloadFolder}/${customFilename}`);
+                    const customFilename = safeName(`${meetingTopic} ${filename}`);
+                    renameSync(`${downloadDirectory}/${temporaryFilename}`, `${downloadDirectory}/${customFilename}`);
                     log('├─', `Saved as ${styleText('underscore', customFilename)}`);
                     resolve();
                 });
@@ -168,7 +154,7 @@ for await (const url of recodingShareUrls) {
     log('└─', 'Completed.');
 }
 console.log();
-log('', 'All downloads are completed.');
+log('', `Download completed. Check ${styleText('underscore', downloadDirectory)}.`);
 const generateLog = (urls, type) => urls.length
     ? `${urls.length} ${type} URL(s) failed.\n` + urls.join('\n')
     : '';

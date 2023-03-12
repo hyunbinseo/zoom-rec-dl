@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import {
 	createWriteStream,
 	existsSync,
@@ -7,13 +9,6 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { Readable } from 'node:stream';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import information from './package.json' assert { type: 'json' };
-import settings from './settings.json' assert { type: 'json' };
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const regex = {
 	httpSetCookieHeader:
@@ -55,41 +50,30 @@ const log = (
 	console[type](formattedMessage);
 };
 
-// Validation - Runtime
+const safeName = (name: string) =>
+	name
+		.replaceAll(' / ', ', ')
+		.replaceAll(': ', ' - ')
+		.replaceAll(/[<>:"/\\|?*]/g, '-');
+
+// Validation
 
 if (typeof fetch === 'undefined')
 	throw new Error('Fetch API is not supported. Use Node.js v18 or later.');
 
-// Validation - Setting
-
-const { filename_meeting_topic, filename_unix_timestamp } = settings;
-
-if (typeof filename_meeting_topic !== 'boolean')
-	throw new Error('filename_meeting_topic should be a boolean');
-
-if (typeof filename_unix_timestamp !== 'boolean')
-	throw new Error('filename_unix_timestamp should be a boolean');
-
-// Validation - URLs file
-
-const urlText = readFileSync('urls.txt', { encoding: 'utf-8' });
-
-if (
-	urlText.includes(
-		'something-unique-and-very-long-can-include-symbols-such-as-period-dash-underscore'
-	)
-)
-	throw new Error('Remove sample URLs from the urls.txt file.');
+if (!existsSync('./urls.txt')) throw new Error('urls.txt file is not found.');
 
 // Download Media Files
 
 const failedRecordingShareUrls = [];
 const failedMediaUrls = [];
 
-const downloadFolder = `${__dirname}/downloads`;
-if (!existsSync(downloadFolder)) mkdirSync(downloadFolder);
+const downloadDirectory = `./${safeName(new Date().toISOString())}`;
+if (!existsSync(downloadDirectory)) mkdirSync(downloadDirectory);
 
-const recodingShareUrls = urlText.split(/\r?\n/).filter((v) => v);
+const recodingShareUrls = readFileSync('./urls.txt', { encoding: 'utf-8' })
+	.split(/\r?\n/)
+	.filter((v) => v);
 
 log('', `Found ${recodingShareUrls.length} URLs.`);
 
@@ -123,9 +107,7 @@ for await (const url of recodingShareUrls) {
 
 	// Node.js Fetch API merges Set-Cookie headers into a single string
 	if (typeof setCookieString !== 'string')
-		throw new Error(
-			`Set-Cookie is not a string. Please leave an issue in ${information.bugs.url}`
-		);
+		throw new Error(`Set-Cookie is not a string.`);
 
 	const cookieString = [...setCookieString.matchAll(regex.httpSetCookieHeader)]
 		.map(([, nameValue]) => nameValue)
@@ -156,7 +138,7 @@ for await (const url of recodingShareUrls) {
 		Number(initialPage.match(regex.zoomTotalClips)?.[0]) || 1;
 
 	const meetingTopic = (
-		initialPage.match(regex.zoomMeetingTopic)?.[1] || ''
+		initialPage.match(regex.zoomMeetingTopic)?.[1] || 'topic-not-found'
 	).trim();
 
 	let nextClipStartTime = -1;
@@ -203,25 +185,13 @@ for await (const url of recodingShareUrls) {
 			const temporaryFilename = `${Date.now()}.part`;
 
 			const writeStream = createWriteStream(
-				`${downloadFolder}/${temporaryFilename}`
+				`${downloadDirectory}/${temporaryFilename}`
 			);
 
 			// @ts-ignore Reference https://stackoverflow.com/a/66629140/12817553
 			const readable = Readable.fromWeb(response.body);
 
 			readable.pipe(writeStream);
-
-			const customFilename = [
-				filename_meeting_topic ? meetingTopic : '',
-				filename,
-				filename_unix_timestamp ? `@${Date.now()}`.slice(0, -3) : '',
-			]
-				.filter((value) => value)
-				.join(' ')
-				.replaceAll(' / ', ', ')
-				.replaceAll(': ', ' - ')
-				.replaceAll(/[<>:"/\\|?*]/g, '_');
-
 			const contentLength = Number(response.headers.get('content-length') || 0);
 
 			if (!Number.isNaN(contentLength) && contentLength) {
@@ -261,10 +231,13 @@ for await (const url of recodingShareUrls) {
 
 			await new Promise<void>((resolve) => {
 				readable.on('end', () => {
+					const customFilename = safeName(`${meetingTopic} ${filename}`);
+
 					renameSync(
-						`${downloadFolder}/${temporaryFilename}`,
-						`${downloadFolder}/${customFilename}`
+						`${downloadDirectory}/${temporaryFilename}`,
+						`${downloadDirectory}/${customFilename}`
 					);
+
 					log('├─', `Saved as ${styleText('underscore', customFilename)}`);
 					resolve();
 				});
@@ -284,7 +257,10 @@ for await (const url of recodingShareUrls) {
 
 console.log();
 
-log('', 'All downloads are completed.');
+log(
+	'',
+	`Download completed. Check ${styleText('underscore', downloadDirectory)}.`
+);
 
 const generateLog = (urls: string[], type: string) =>
 	urls.length

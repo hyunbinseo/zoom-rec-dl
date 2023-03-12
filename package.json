@@ -1,14 +1,36 @@
 {
-	"bugs": {
-		"url": "https://github.com/hyunbinseo/zoom-rec-dl/issues"
-	},
-	"homepage": "https://github.com/hyunbinseo/zoom-rec-dl#readme",
-	"type": "module",
+	"name": "zoom-rec-dl",
+	"description": "Save Zoom cloud recordings to a local directory.",
+	"version": "0.0.0",
+	"license": "MIT",
 	"devDependencies": {
 		"@types/node": "^18.15.0",
 		"typescript": "^4.9.5"
 	},
+	"type": "module",
+	"main": "index.js",
+	"bin": {
+		"zoom-rec-dl": "./index.js"
+	},
+	"files": [
+		"index.js"
+	],
+	"keywords": [
+		"download",
+		"zoom",
+		"recording"
+	],
+	"author": "Hyunbin Seo",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/hyunbinseo/zoom-rec-dl.git"
+	},
+	"bugs": {
+		"url": "https://github.com/hyunbinseo/zoom-rec-dl/issues"
+	},
+	"homepage": "https://github.com/hyunbinseo/zoom-rec-dl#readme",
 	"engines": {
-		"node": ">=18"
+		"node": ">=18",
+		"npm": ">=9"
 	}
 }

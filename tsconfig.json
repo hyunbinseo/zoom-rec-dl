@@ -1,6 +1,5 @@
 {
 	"compilerOptions": {
-		"allowSyntheticDefaultImports": true,
 		"module": "esnext",
 		"moduleResolution": "node",
 		"removeComments": true,
