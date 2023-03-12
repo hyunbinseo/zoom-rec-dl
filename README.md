@@ -43,6 +43,14 @@ If not found or outdated, [download](https://nodejs.org/en/download/) and instal
 1. Create a `urls.txt` file in a desired place.
 2. Add URLs to the text file, one in each line.
 3. Open a terminal window in the directory.[^1]
-4. Execute `npx zoom-rec-dl@latest`
+4. Execute command `npx zoom-rec-dl@latest`
+
+Press enter if the following message is shown.
+
+```
+Need to install the following packages:
+  zoom-rec-dl@x.x.x
+Ok to proceed? (y)
+```
 
 [^1]: When `ls` or `dir` command is executed, the `urls.txt` file should be listed.

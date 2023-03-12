@@ -9,7 +9,9 @@
 	},
 	"type": "module",
 	"main": "index.js",
-	"bin": "index.js",
+	"bin": {
+		"zoom-rec-dl": "./index.js"
+	},
 	"files": [
 		"index.js"
 	],
