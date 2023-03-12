@@ -7,8 +7,8 @@ Save Zoom cloud recordings to a local directory. A cross-platform video and audi
 - Windows, macOS, and Linux - any operating system that supports [Node.js] and [npm].
 - Zoom cloud recording share link that does not require any additional authentication.
 
-[node.js]: (https://nodejs.org/)
-[npm]: (https://www.npmjs.com/)
+[node.js]: https://nodejs.org/
+[npm]: https://www.npmjs.com/
 
 ---
 
