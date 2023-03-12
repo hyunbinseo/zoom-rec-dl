@@ -9,11 +9,6 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { Readable } from 'node:stream';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const regex = {
 	httpSetCookieHeader:
@@ -55,6 +50,12 @@ const log = (
 	console[type](formattedMessage);
 };
 
+const safeName = (name: string) =>
+	name
+		.replaceAll(' / ', ', ')
+		.replaceAll(': ', ' - ')
+		.replaceAll(/[<>:"/\\|?*]/g, '-');
+
 // Validation
 
 if (typeof fetch === 'undefined')
@@ -67,8 +68,7 @@ if (!existsSync('./urls.txt')) throw new Error('urls.txt file is not found.');
 const failedRecordingShareUrls = [];
 const failedMediaUrls = [];
 
-const folderName = new Date().toISOString().replaceAll(' ', '-');
-const downloadDirectory = `${__dirname}/${folderName}`;
+const downloadDirectory = `./${safeName(new Date().toISOString())}`;
 if (!existsSync(downloadDirectory)) mkdirSync(downloadDirectory);
 
 const recodingShareUrls = readFileSync('./urls.txt', { encoding: 'utf-8' })
@@ -231,10 +231,7 @@ for await (const url of recodingShareUrls) {
 
 			await new Promise<void>((resolve) => {
 				readable.on('end', () => {
-					const customFilename = `${meetingTopic} ${filename}`
-						.replaceAll(' / ', ', ')
-						.replaceAll(': ', ' - ')
-						.replaceAll(/[<>:"/\\|?*]/g, '_');
+					const customFilename = safeName(`${meetingTopic} ${filename}`);
 
 					renameSync(
 						`${downloadDirectory}/${temporaryFilename}`,
@@ -262,7 +259,7 @@ console.log();
 
 log(
 	'',
-	`Download completed. Check the ${styleText('underscore', folderName)} folder.`
+	`Download completed. Check ${styleText('underscore', downloadDirectory)}.`
 );
 
 const generateLog = (urls: string[], type: string) =>
