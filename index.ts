@@ -9,6 +9,7 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { Readable } from 'node:stream';
+import puppeteer, { type Browser } from 'puppeteer';
 
 const regex = {
 	httpSetCookieHeader:
@@ -21,7 +22,7 @@ const regex = {
 	zoomCurrentClip: /(?<=currentClip: )\d+(?=,)/,
 	zoomNextClipStartTime: /(?<=nextClipStartTime: )-?\d+(?=,)/,
 	zoomMeetingTopic: /topic: "(.+)",/,
-	zoomMediaUrl: /https:\/\/ssrweb\..+\/((?:.+)\.(?:mp4|m4a))[^'"]+/g,
+	zoomMediaUrl: /https:\/\/ssrweb\.[^'"]+\/((?:[^'"]+)\.(?:mp4|m4a))[^'"]+/g,
 } satisfies Record<string, RegExp>;
 
 const ansiEscapeCodes = {
@@ -76,6 +77,8 @@ const recodingShareUrls = readFileSync('./urls.txt', { encoding: 'utf-8' })
 	.filter((v) => v);
 
 log('', `Found ${recodingShareUrls.length} URLs.`);
+
+let browser: Browser | undefined;
 
 for await (const url of recodingShareUrls) {
 	console.log();
@@ -163,12 +166,37 @@ for await (const url of recodingShareUrls) {
 			clipPage.match(regex.zoomNextClipStartTime)?.[0] || -1
 		);
 
-		const matchedMediaUrls = [...clipPage.matchAll(regex.zoomMediaUrl)];
+		let matchedMediaUrls = [...clipPage.matchAll(regex.zoomMediaUrl)];
 
 		if (!matchedMediaUrls.length) {
-			log('└─', styleText('red', 'No media URLs are found.'), 'error');
-			failedRecordingShareUrls.push(url);
-			continue;
+			try {
+				if (!browser) browser = await puppeteer.launch();
+
+				const page = await browser.newPage();
+				await page.goto(url, { waitUntil: 'networkidle2' });
+
+				const downloadBtnSelector = '.download-btn';
+				await page.waitForSelector(downloadBtnSelector);
+				await page.click(downloadBtnSelector);
+
+				const response = await page.waitForResponse((request) =>
+					request.url().includes('/nws/recording/1.0/download-meeting/')
+				);
+
+				if (!response.ok) throw new Error();
+
+				matchedMediaUrls = [
+					...(await response.text()).matchAll(regex.zoomMediaUrl),
+				];
+
+				if (!matchedMediaUrls.length) throw new Error();
+
+				await page.close();
+			} catch (e) {
+				log('└─', styleText('red', 'No media URLs are found.'), 'error');
+				failedRecordingShareUrls.push(url);
+				continue;
+			}
 		}
 
 		for await (const [mediaUrl, filename] of matchedMediaUrls) {
