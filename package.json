@@ -16,7 +16,7 @@
 		"zoom-rec-dl": "./index.js"
 	},
 	"files": [
-		"index.js"
+		"**/*.js"
 	],
 	"keywords": [
 		"download",
