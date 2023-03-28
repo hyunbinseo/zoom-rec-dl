@@ -13,12 +13,13 @@ import puppeteer, { type Browser } from 'puppeteer';
 
 const regex = {
 	httpSetCookieHeader:
-		/([^,= ]+=[^,;]+);? *(?:[^,= ]+(?:=(?:Mon,|Tue,|Wed,|Thu,|Fri,|Sat,|Sun,)?[^,;]+)?;? *)*/g,
+		/([^,= ]+)=([^,;]+);? *(?:[^,= ]+(?:=(?:Mon,|Tue,|Wed,|Thu,|Fri,|Sat,|Sun,)?[^,;]+)?;? *)*/g,
 	// Zoom Vanity URLs should be at least 4 characters in length, but there are real-world examples that are shorter.
 	// Reference 'Guidelines for Vanity URL requests' documentation https://support.zoom.us/hc/en-us/articles/215062646
 	zoomRecordingShareUrl:
 		/^https:\/\/(?:(?:[a-z][a-z\-]{1,}[a-z]|us[0-9]{2}web)\.)?(?:zoom.us|zoomgov.com)\/rec\/(?:share|play)\/([^?\s]+)(?:\?pwd=[^?\s]+)?$/,
 	zoomTotalClips: /(?<=totalClips: )\d+(?=,)/,
+	zoomCookieTs: /^TS.{8}$/,
 	zoomCurrentClip: /(?<=currentClip: )\d+(?=,)/,
 	zoomNextClipStartTime: /(?<=nextClipStartTime: )-?\d+(?=,)/,
 	zoomMeetingTopic: /topic: "(.+)",/,
@@ -92,13 +93,38 @@ for await (const url of recodingShareUrls) {
 
 	log('', `Processing ${styleText('magenta', match[1])}`);
 
-	const headers = new Headers({
-		// Chrome 111 on macOS
-		'User-Agent':
-			'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
-	});
+	const cookieMap = new Map<string, string>();
 
-	let response = await fetch(url, { headers });
+	const removeTsCookie = () => {
+		for (const existingKey of cookieMap.keys()) {
+			if (existingKey.match(regex.zoomCookieTs)) cookieMap.delete(existingKey);
+		}
+	};
+
+	const updateCookie = (response: Response) => {
+		const matches = response.headers
+			.get('set-cookie')
+			?.matchAll(regex.httpSetCookieHeader);
+
+		for (const [, key, value] of matches || []) {
+			if (key.match(regex.zoomCookieTs)) removeTsCookie();
+			cookieMap.set(key, value);
+		}
+	};
+
+	const createHeaders = (data: Record<string, string> = {}) =>
+		new Headers({
+			'Accept':
+				'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+			'Cookie': [...cookieMap]
+				.map(([key, value]) => `${key}=${value}`)
+				.join('; '),
+			'Referer': 'https://zoom.us/', // Required to prevent 403 Forbidden error
+			'User-Agent':
+				'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36', // Chrome 111 on macOS
+		});
+
+	let response = await fetch(url, { headers: createHeaders() });
 
 	if (!response.ok) {
 		log('└─', styleText('red', 'Initial page fetch has failed.'), 'error');
@@ -106,22 +132,14 @@ for await (const url of recodingShareUrls) {
 		continue;
 	}
 
-	const setCookieString = response.headers.get('set-cookie');
-
-	// Node.js Fetch API merges Set-Cookie headers into a single string
-	if (typeof setCookieString !== 'string')
-		throw new Error(`Set-Cookie is not a string.`);
-
-	const cookieString = [...setCookieString.matchAll(regex.httpSetCookieHeader)]
-		.map(([, nameValue]) => nameValue)
-		.join(';');
-
-	headers.append('Cookie', cookieString);
+	updateCookie(response);
 
 	if (response.redirected) {
 		// Re-request the media download page with authentication cookie (_zm_ssid)
 		// Returns different response based on the User-Agent (e.g. global data)
-		const redirectedPageResponse = await fetch(url, { headers });
+		const redirectedPageResponse = await fetch(url, {
+			headers: createHeaders(),
+		});
 
 		if (!redirectedPageResponse.ok) {
 			log('└─', styleText('red', 'Redirected page fetch has failed.'), 'error');
@@ -131,9 +149,6 @@ for await (const url of recodingShareUrls) {
 
 		response = redirectedPageResponse;
 	}
-
-	// Required to prevent 403 Forbidden error
-	headers.append('Referer', 'https://zoom.us/');
 
 	const initialPage = await response.text();
 
@@ -153,7 +168,7 @@ for await (const url of recodingShareUrls) {
 
 		if (i !== 1 && nextClipStartTime !== -1) {
 			const clipUrl = `${response.url}&startTime=${nextClipStartTime}`;
-			const clipResponse = await fetch(clipUrl, { headers });
+			const clipResponse = await fetch(clipUrl, { headers: createHeaders() });
 			if (!clipResponse.ok) {
 				log('├─', styleText('red', 'Clip page fetch has failed.'), 'error');
 				failedRecordingShareUrls.push(url);
@@ -183,7 +198,15 @@ for await (const url of recodingShareUrls) {
 					request.url().includes('/nws/recording/1.0/download-meeting/')
 				);
 
-				if (!response.ok) throw new Error();
+				if (!response.ok()) throw new Error();
+
+				const client = await page.target().createCDPSession();
+				const cookies = (await client.send('Network.getAllCookies')).cookies;
+
+				for (const { name, value } of cookies) {
+					if (name.match(regex.zoomCookieTs)) removeTsCookie();
+					cookieMap.set(name, encodeURI(value));
+				}
 
 				matchedMediaUrls = [
 					...(await response.text()).matchAll(regex.zoomMediaUrl),
@@ -199,10 +222,13 @@ for await (const url of recodingShareUrls) {
 			}
 		}
 
+		cookieMap.delete('cdn_detect_result');
+		cookieMap.delete('cred');
+
 		for await (const [mediaUrl, filename] of matchedMediaUrls) {
 			log('├─', `Downloading ${styleText('yellow', filename)}`);
 
-			const response = await fetch(mediaUrl, { headers });
+			const response = await fetch(mediaUrl, { headers: createHeaders() });
 
 			if (!response.ok) {
 				log('├─', styleText('red', 'Media file fetch has failed.'), 'error');
@@ -282,6 +308,8 @@ for await (const url of recodingShareUrls) {
 
 	log('└─', 'Completed.');
 }
+
+if (browser) await browser.close();
 
 console.log();
 
