@@ -13,7 +13,7 @@ export const styleText = (style: AnsiEscapeCode, text: string | number) =>
 
 export const log = (
 	prefix: '┌' | '│' | '└' | '' = '',
-	message: string = '',
+	message = '',
 	style?: AnsiEscapeCode
 ) => {
 	if (!prefix && !message) {

@@ -25,7 +25,7 @@ const recShareUrls =
 	urlText.match(
 		// Zoom Vanity URLs should be at least 4 characters in length, but there are real-world examples that are shorter.
 		// Reference 'Guidelines for Vanity URL requests' documentation https://support.zoom.us/hc/en-us/articles/215062646
-		/^https:\/\/(?:[a-z][a-z\-]{1,}[a-z]\.|us[0-9]{2}web\.)?(?:zoom.us|zoomgov.com)\/rec\/(?:share|play)\/[^?\s]+(?:\?pwd=[^?\s]+)?$/gm
+		/^https:\/\/(?:[a-z][a-z-]{1,}[a-z]\.|us[0-9]{2}web\.)?(?:zoom.us|zoomgov.com)\/rec\/(?:share|play)\/[^?\s]+(?:\?pwd=[^?\s]+)?$/gm
 	) || [];
 
 if (!recShareUrls.length)
