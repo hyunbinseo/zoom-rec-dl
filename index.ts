@@ -20,36 +20,34 @@ if (typeof fetch === 'undefined')
 		`Fetch API is not supported. Please use Node.js v18 or later. (${process.version})`
 	);
 
-if (!existsSync('./urls.txt')) {
-	writeFileSync('urls.txt', sampleUrls);
+const urlTextFilename = 'urls.txt';
+
+if (!existsSync(urlTextFilename)) {
+	writeFileSync(urlTextFilename, sampleUrls + '\n');
 	throw new Error(
-		'urls.txt file is not found. A sample urls.txt file is created in the directory. Please edit the file and re-run the command.'
+		`${urlTextFilename} file is not found. A sample ${urlTextFilename} file has been created in the current directory.`
 	);
 }
 
-const urlText = readFileSync('./urls.txt', { encoding: 'utf-8' });
+const urlText = readFileSync(urlTextFilename, { encoding: 'utf-8' });
 
 if (urlText.includes(samplePathname))
-	throw new Error(
-		'Sample URL(s) are found. Please remove them from the urls.txt file.'
-	);
+	throw new Error(`Sample URL(s) are found. Please remove them from the ${urlTextFilename} file.`);
 
 const recShareUrls = new Set(
 	urlText.match(
 		// Zoom Vanity URLs should be at least 4 characters in length, but there are real-world examples that are shorter.
 		// Reference 'Guidelines for Vanity URL requests' documentation https://support.zoom.us/hc/en-us/articles/215062646
-		/^https:\/\/(?:[a-z][a-z-]{1,}[a-z]\.|us[0-9]{2}web\.)?(?:zoom.us|zoomgov.com)\/rec\/(?:share|play)\/[^?\s]+(?:\?pwd=[^?\s]+)?$/gm
+		/^https:\/\/(?:[a-z][a-z-]{1,}[a-z]\.|us[0-9]{2}web\.)?(?:zoom.us|zoomgov.com)\/rec\/(?:share|play)\/[^\s]+(?:\?pwd=[^?\s]+)?$/gm
 	)
 );
 
 if (!recShareUrls.size)
-	throw new Error('No valid URLs are found. Please check the urls.txt file.');
+	throw new Error(`No valid URL(s) are found. Please check the ${urlTextFilename} file.`);
 
 // Global variables
 
-const cookieMap = new Map<string, string>();
-
-const baseHeaders = new Headers({
+const headers = new Headers({
 	// Required to prevent 403 Forbidden error
 	'Referer': 'https://zoom.us/',
 	// Chrome 111 on macOS
@@ -57,74 +55,54 @@ const baseHeaders = new Headers({
 		'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
 });
 
-const createHeaders = () => {
-	baseHeaders.set(
-		'Cookie',
-		[...cookieMap].map(([key, value]) => `${key}=${value};`).join(' ')
-	);
-	return baseHeaders;
-};
-
 const failedAttempts: Array<string> = [];
+
+const downloadDirectory = `${convertToSafeName(new Date().toISOString())}`;
 
 // Start download(s)
 
-const downloadDirectory = `./${convertToSafeName(new Date().toISOString())}`;
 if (!existsSync(downloadDirectory)) mkdirSync(downloadDirectory);
 
 log('', `Found ${recShareUrls.size} valid URLs.`);
 
 for (const recShareUrl of recShareUrls) {
-	try {
-		log();
-		cookieMap.clear();
+	log();
 
+	headers.set('cookie', '');
+
+	try {
 		const { origin } = new URL(recShareUrl);
 
-		const recordId =
-			recShareUrl.match(/(?<=share\/|play\/)[^?\s]{20}/)?.[0] || '';
+		const recordId = recShareUrl.match(/(?<=share\/|play\/)[^?\s]{20}/)?.[0] || '';
 
 		log('┌', recordId, 'magenta');
 
 		const shareInfoResponse = await fetch(
-			new URL(
-				recShareUrl.replace(
-					'/rec/share/',
-					'/nws/recording/1.0/play/share-info/'
-				)
-			).toString(),
-			{
-				headers: createHeaders(),
-			}
+			recShareUrl.replace('/rec/share/', '/nws/recording/1.0/play/share-info/'),
+			{ headers }
 		);
 
-		if (!shareInfoResponse.ok) throw new Error('/share-info fetch has failed.');
+		if (!shareInfoResponse.ok) throw new Error('Request to /share-info has failed.');
 
-		for (const [, name, value] of shareInfoResponse.headers
+		const setCookieHeaders = shareInfoResponse.headers
 			.get('set-cookie')
-			?.match(/(_zm_ssid|cred)=([^;]+)/g) || []) {
-			cookieMap.set(name, value);
-		}
+			?.match(/(_zm_ssid|cred)=([^;]+)/g);
 
-		type ShareInfo = { redirectUrl?: string; pwd?: string };
+		if (setCookieHeaders) headers.set('cookie', setCookieHeaders.join('; '));
 
 		const { result: shareInfo } = (await shareInfoResponse.json()) as {
-			result: ShareInfo;
+			result: { redirectUrl?: string; pwd?: string };
 		};
 
-		if (!shareInfo.redirectUrl)
-			throw new Error('Record play URL is not found.');
+		if (!shareInfo.redirectUrl) throw new Error('Record play URL is not found.');
 
 		const recPlayUrl = new URL(shareInfo.redirectUrl, origin);
 
 		if (shareInfo.pwd) recPlayUrl.searchParams.set('pwd', shareInfo.pwd);
 
-		const recPlayResponse = await fetch(
-			new URL(recPlayUrl.toString(), origin).toString(),
-			{ headers: createHeaders() }
-		);
+		const recPlayResponse = await fetch(recPlayUrl, { headers });
 
-		if (!recPlayResponse.ok) throw new Error('/rec/play fetch has failed.');
+		if (!recPlayResponse.ok) throw new Error('Request to /rec/play has failed.');
 
 		const fileId = (await recPlayResponse.text()).match(
 			// Zoom uses both single and double quotes in JavaScript data.
@@ -133,24 +111,17 @@ for (const recShareUrl of recShareUrls) {
 
 		if (!fileId) throw new Error('File ID is not found.');
 
-		const playInfoUrl = new URL(
-			`/nws/recording/1.0/play/info/${fileId}`,
-			origin
-		);
+		const playInfoUrl = new URL(`/nws/recording/1.0/play/info/${fileId}`, origin);
 
 		if (shareInfo.pwd) playInfoUrl.searchParams.set('pwd', shareInfo.pwd);
-
 		playInfoUrl.searchParams.set('canPlayFromShare', 'true');
 		playInfoUrl.searchParams.set('from', 'share_recording_detail');
 		playInfoUrl.searchParams.set('continueMode', 'true');
 		playInfoUrl.searchParams.set('componentName', 'rec-play');
 
-		const initPlayInfoResponse = await fetch(playInfoUrl.toString(), {
-			headers: createHeaders(),
-		});
+		const initPlayInfoResponse = await fetch(playInfoUrl, { headers });
 
-		if (!initPlayInfoResponse.ok)
-			throw new Error('/play/info fetch has failed.');
+		if (!initPlayInfoResponse.ok) throw new Error('Request to /play/info has failed.');
 
 		type PlayInfo = {
 			meet: { topic: string };
@@ -159,37 +130,25 @@ for (const recShareUrl of recShareUrls) {
 			nextClipStartTime: number;
 		} & Record<string, unknown>;
 
-		const { result: initPlayInfo } = (await initPlayInfoResponse.json()) as {
-			result: PlayInfo;
-		};
-
-		const { topic } = initPlayInfo.meet;
+		const { result: initPlayInfo } = (await initPlayInfoResponse.json()) as { result: PlayInfo };
 
 		let nextClipStartTime = initPlayInfo.nextClipStartTime;
 
 		for (let i = 1; i <= initPlayInfo.totalClips; i++) {
 			log('│');
 
-			if (initPlayInfo.totalClips > 1)
-				log('│', `Processing clip ${i}/${initPlayInfo.totalClips}.`);
+			if (initPlayInfo.totalClips > 1) log('│', `Processing clip ${i}/${initPlayInfo.totalClips}.`);
 
-			let playInfo: PlayInfo;
+			let playInfo = initPlayInfo;
 
-			if (i === 1) {
-				playInfo = initPlayInfo;
-			} else {
+			if (i !== 1) {
 				playInfoUrl.searchParams.set('startTime', nextClipStartTime.toString());
 
-				const playInfoResponse = await fetch(playInfoUrl.toString(), {
-					headers: createHeaders(),
-				});
+				const playInfoResponse = await fetch(playInfoUrl, { headers });
 
-				if (!playInfoResponse.ok)
-					throw new Error(`/play/info-${i} fetch has failed.`);
+				if (!playInfoResponse.ok) throw new Error(`Request to /play/info has failed. (${i})`);
 
-				const { result } = (await playInfoResponse.json()) as {
-					result: PlayInfo;
-				};
+				const { result } = (await playInfoResponse.json()) as { result: PlayInfo };
 
 				playInfo = result;
 				nextClipStartTime = result.nextClipStartTime;
@@ -198,8 +157,7 @@ for (const recShareUrl of recShareUrls) {
 			const mediaUrls = new Set(
 				Object.values(playInfo).filter(
 					(v): v is string =>
-						typeof v === 'string' &&
-						/^https:\/\/ssrweb.zoom.us\/.+(.mp4|.m4a).*$/.test(v)
+						typeof v === 'string' && /^https:\/\/ssrweb.zoom.us\/[^\s]+(.mp4|.m4a)[^\s]*$/.test(v)
 				)
 			);
 
@@ -207,18 +165,13 @@ for (const recShareUrl of recShareUrls) {
 
 			for (const mediaUrl of mediaUrls) {
 				try {
-					const response = await fetch(mediaUrl, {
-						headers: createHeaders(),
-					});
+					const response = await fetch(mediaUrl, { headers });
 
-					if (!response.ok) throw new Error('Media file fetch has failed.');
-					if (!response.body) throw new Error('Media file response is empty.');
+					if (!response.ok) throw new Error('Requesting the media file has failed.');
 
 					const temporaryFilename = `${Date.now()}.part`;
 
-					const writeStream = createWriteStream(
-						`${downloadDirectory}/${temporaryFilename}`
-					);
+					const writeStream = createWriteStream(`${downloadDirectory}/${temporaryFilename}`);
 
 					// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 					// @ts-ignore - reference https://stackoverflow.com/a/66629140/12817553
@@ -226,9 +179,7 @@ for (const recShareUrl of recShareUrls) {
 
 					readable.pipe(writeStream);
 
-					const contentLength = Number(
-						response.headers.get('content-length') || 0
-					);
+					const contentLength = Number(response.headers.get('content-length') || 0);
 
 					if (!Number.isNaN(contentLength) && contentLength) {
 						process.stdout.write('-'.repeat(100));
@@ -241,9 +192,7 @@ for (const recShareUrl of recShareUrls) {
 
 							cumulatedLength += length;
 
-							const percentage = Math.round(
-								(cumulatedLength / contentLength) * 100
-							);
+							const percentage = Math.round((cumulatedLength / contentLength) * 100);
 							if (previousPercentage === percentage) return;
 
 							previousPercentage = percentage;
@@ -263,56 +212,66 @@ for (const recShareUrl of recShareUrls) {
 						readable.on('data', handleProgress);
 					}
 
-					const filename = mediaUrl.match(/[^/]+(?:\.mp4|\.m4a)/)?.[0] || '';
-					const customFilename = convertToSafeName(`${topic} ${filename}`);
+					const filename = convertToSafeName(
+						`${playInfo.meet.topic} ${mediaUrl.match(/[^/]+(?:\.mp4|\.m4a)/)?.[0] || Date.now()}`
+					);
 
 					await new Promise<void>((resolve) => {
 						readable.on('end', () => {
 							renameSync(
 								`${downloadDirectory}/${temporaryFilename}`,
-								`${downloadDirectory}/${customFilename}`
+								`${downloadDirectory}/${filename}`
 							);
 
-							log('│', `Saved ${styleText('underscore', customFilename)}`);
+							log('│', `Saved ${styleText('underscore', filename)}`);
+
 							resolve();
 						});
+
 						readable.on('error', () => {
-							failedAttempts.push(`${recShareUrl}\n${mediaUrl}`);
-							log('│', 'Download has failed.', 'red');
+							failedAttempts.push(`${recShareUrl}\n\t${mediaUrl}`);
+
+							log('│', 'Cannot save the media file.', 'red');
+
 							resolve();
 						});
 					});
 
 					readable.removeAllListeners();
 				} catch (e) {
-					failedAttempts.push(`${recShareUrl}\n${mediaUrl}`);
-					let message = 'Processing a media file URL has failed.';
-					if (e instanceof Error && e.message) message = e.message;
+					failedAttempts.push(`${recShareUrl}\n\t${mediaUrl}`);
+
+					const message =
+						e instanceof Error && e.message ? e.message : 'Cannot download the media file.';
+
 					log('│', message, 'red');
+
 					continue;
 				}
 			}
-
-			log('│', 'Downloaded media file(s).');
 		}
 
 		log('│');
 		log('└', 'Completed.');
 	} catch (e) {
 		failedAttempts.push(recShareUrl);
-		let message = 'Processing a recording share URL has failed.';
-		if (e instanceof Error && e.message) message = e.message;
+
+		const message =
+			e instanceof Error && e.message ? e.message : 'Cannot access the recording information.';
+
 		log('└', message, 'red');
+
 		continue;
 	}
 }
 
 if (failedAttempts.length) {
+	log();
+
 	const logFilename = `${Date.now()}.txt`;
 
 	writeFileSync(logFilename, failedAttempts.join('\n\n') + '\n');
 
-	log();
 	log('┌', `Found ${failedAttempts.length} failed attempts.`);
 	log('└', `Reference ${styleText('underscore', logFilename)}`);
 }

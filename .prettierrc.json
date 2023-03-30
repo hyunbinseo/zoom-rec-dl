@@ -1,8 +1,4 @@
 {
-	"htmlWhitespaceSensitivity": "ignore",
-	"quoteProps": "consistent",
-	"singleQuote": true,
-	"useTabs": true,
 	"overrides": [
 		{
 			"files": "*.md",
@@ -10,5 +6,9 @@
 				"useTabs": false
 			}
 		}
-	]
+	],
+	"printWidth": 100,
+	"quoteProps": "consistent",
+	"singleQuote": true,
+	"useTabs": true
 }
