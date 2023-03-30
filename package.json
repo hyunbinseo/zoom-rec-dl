@@ -3,10 +3,6 @@
 	"description": "Save Zoom cloud recordings to a local directory.",
 	"version": "0.0.0",
 	"license": "MIT",
-	"dependencies": {
-		"node-fetch": "^3.3.1",
-		"puppeteer": "^19.8.0"
-	},
 	"devDependencies": {
 		"@types/node": "^18.15.0",
 		"@typescript-eslint/eslint-plugin": "^5.57.0",
