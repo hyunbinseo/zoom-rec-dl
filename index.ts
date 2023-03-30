@@ -9,9 +9,9 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { Readable } from 'node:stream';
-import { log, styleText } from './src/log';
-import { convertToSafeName } from './src/miscellaneous';
-import { samplePathname, sampleUrls } from './src/sample';
+import { log, styleText } from './src/log.js';
+import { convertToSafeName } from './src/miscellaneous.js';
+import { samplePathname, sampleUrls } from './src/sample.js';
 
 // Startup check
 
