@@ -5,7 +5,11 @@
 	"license": "MIT",
 	"devDependencies": {
 		"@types/node": "^18.15.0",
-		"typescript": "^4.9.5"
+		"@typescript-eslint/eslint-plugin": "^5.57.0",
+		"@typescript-eslint/parser": "^5.57.0",
+		"eslint": "^8.37.0",
+		"prettier": "^2.8.7",
+		"typescript": "^5.0.2"
 	},
 	"type": "module",
 	"main": "index.js",
@@ -13,7 +17,7 @@
 		"zoom-rec-dl": "./index.js"
 	},
 	"files": [
-		"index.js"
+		"**/*.js"
 	],
 	"keywords": [
 		"download",

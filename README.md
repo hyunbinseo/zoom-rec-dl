@@ -7,8 +7,8 @@ Save Zoom cloud recordings to a local directory. A cross-platform video and audi
 - Windows, macOS, and Linux - any operating system that supports [Node.js] and [npm].
 - Zoom cloud recording share link that does not require any additional authentication.
 
-[node.js]: (https://nodejs.org/)
-[npm]: (https://www.npmjs.com/)
+[node.js]: https://nodejs.org/
+[npm]: https://www.npmjs.com/
 
 ---
 
@@ -25,15 +25,7 @@ Reference the [documentation](https://support.zoom.us/hc/en-us/articles/11692220
 
 ## Prerequisites
 
-- [Node.js] 18+
-- [npm] 9+
-
-To check the versions, execute the following commands in a terminal window.
-
-- `node -v`
-- `npm -v`
-
-If not found or outdated, [download](https://nodejs.org/en/download/) and install the latest Node.js LTS release.
+[Node.js] and [npm] are required. The latest Node.js LTS installer can be downloaded [here](https://nodejs.org/en/download/).
 
 - [npm] should be installed. (Included in the Node.js installer)
 - `Add to PATH` option should be checked. (Windows only)
@@ -42,8 +34,10 @@ If not found or outdated, [download](https://nodejs.org/en/download/) and instal
 
 1. Create a `urls.txt` file in a desired place.
 2. Add URLs to the text file, one in each line.
-3. Open a terminal window in the directory.[^1]
+3. Open a terminal window in the directory.[^open-terminal]
 4. Execute command `npx zoom-rec-dl@latest`
+
+[^open-terminal]: When `ls` or `dir` command is executed, the `urls.txt` file should be listed.
 
 Press enter if the following message is shown.
 
@@ -52,5 +46,3 @@ Need to install the following packages:
   zoom-rec-dl@x.x.x
 Ok to proceed? (y)
 ```
-
-[^1]: When `ls` or `dir` command is executed, the `urls.txt` file should be listed.

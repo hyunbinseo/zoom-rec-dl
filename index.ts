@@ -9,280 +9,269 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { Readable } from 'node:stream';
+import { log, styleText } from './src/log.js';
+import { convertToSafeName } from './src/miscellaneous.js';
+import { samplePathname, sampleUrls } from './src/sample.js';
 
-const regex = {
-	httpSetCookieHeader:
-		/([^,= ]+=[^,;]+);? *(?:[^,= ]+(?:=(?:Mon,|Tue,|Wed,|Thu,|Fri,|Sat,|Sun,)?[^,;]+)?;? *)*/g,
-	// Zoom Vanity URLs should be at least 4 characters in length, but there are real-world examples that are shorter.
-	// Reference 'Guidelines for Vanity URL requests' documentation https://support.zoom.us/hc/en-us/articles/215062646
-	zoomRecordingShareUrl:
-		/^https:\/\/(?:(?:[a-z][a-z\-]{1,}[a-z]|us[0-9]{2}web)\.)?(?:zoom.us|zoomgov.com)\/rec\/(?:share|play)\/([^?\s]+)(?:\?pwd=[^?\s]+)?$/,
-	zoomTotalClips: /(?<=totalClips: )\d+(?=,)/,
-	zoomCurrentClip: /(?<=currentClip: )\d+(?=,)/,
-	zoomNextClipStartTime: /(?<=nextClipStartTime: )-?\d+(?=,)/,
-	zoomMeetingTopic: /topic: "(.+)",/,
-	zoomMediaUrl: /https:\/\/ssrweb\..+\/((?:.+)\.(?:mp4|m4a))[^'"]+/g,
-} satisfies Record<string, RegExp>;
-
-const ansiEscapeCodes = {
-	underscore: '\x1b[4m',
-	red: '\x1b[31m',
-	yellow: '\x1b[33m',
-	magenta: '\x1b[35m',
-	cyan: '\x1b[36m',
-} satisfies Record<string, `\x1b[${number}m`>;
-
-type AnsiEscapeCode = keyof typeof ansiEscapeCodes;
-
-const styleText = (style: AnsiEscapeCode, text: string | number) =>
-	`${ansiEscapeCodes[style]}${text}\x1b[0m`;
-
-const generateColoredTimestamp = () =>
-	styleText('cyan', new Date().toISOString());
-
-const log = (
-	prefix: '' | '├─' | '└─',
-	message: string,
-	type: 'log' | 'error' = 'log'
-) => {
-	const prefixedMessage = (prefix && `${prefix} `) + message;
-	const formattedMessage = `${generateColoredTimestamp()} ${prefixedMessage}`;
-	console[type](formattedMessage);
-};
-
-const safeName = (name: string) =>
-	name
-		.replaceAll(' / ', ', ')
-		.replaceAll(': ', ' - ')
-		.replaceAll(/[<>:"/\\|?*]/g, '-');
-
-// Validation
+// Startup check
 
 if (typeof fetch === 'undefined')
-	throw new Error('Fetch API is not supported. Use Node.js v18 or later.');
+	throw new Error(
+		`Fetch API is not supported. Please use Node.js v18 or later. (${process.version})`
+	);
 
-if (!existsSync('./urls.txt')) throw new Error('urls.txt file is not found.');
+const urlTextFilename = 'urls.txt';
 
-// Download Media Files
-
-const failedRecordingShareUrls = [];
-const failedMediaUrls = [];
-
-const downloadDirectory = `./${safeName(new Date().toISOString())}`;
-if (!existsSync(downloadDirectory)) mkdirSync(downloadDirectory);
-
-const recodingShareUrls = readFileSync('./urls.txt', { encoding: 'utf-8' })
-	.split(/\r?\n/)
-	.filter((v) => v);
-
-log('', `Found ${recodingShareUrls.length} URLs.`);
-
-for await (const url of recodingShareUrls) {
-	console.log();
-
-	const match = url.match(regex.zoomRecordingShareUrl);
-
-	if (match === null) {
-		log('', styleText('red', 'Zoom record sharing URL is not valid.'), 'error');
-		continue;
-	}
-
-	log('', `Processing ${styleText('magenta', match[1])}`);
-
-	const headers = new Headers({
-		// Chrome 111 on macOS
-		'User-Agent':
-			'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
-	});
-
-	let response = await fetch(url, { headers });
-
-	if (!response.ok) {
-		log('└─', styleText('red', 'Initial page fetch has failed.'), 'error');
-		failedRecordingShareUrls.push(url);
-		continue;
-	}
-
-	const setCookieString = response.headers.get('set-cookie');
-
-	// Node.js Fetch API merges Set-Cookie headers into a single string
-	if (typeof setCookieString !== 'string')
-		throw new Error(`Set-Cookie is not a string.`);
-
-	const cookieString = [...setCookieString.matchAll(regex.httpSetCookieHeader)]
-		.map(([, nameValue]) => nameValue)
-		.join(';');
-
-	headers.append('Cookie', cookieString);
-
-	if (response.redirected) {
-		// Re-request the media download page with authentication cookie (_zm_ssid)
-		// Returns different response based on the User-Agent (e.g. global data)
-		const redirectedPageResponse = await fetch(url, { headers });
-
-		if (!redirectedPageResponse.ok) {
-			log('└─', styleText('red', 'Redirected page fetch has failed.'), 'error');
-			failedRecordingShareUrls.push(url);
-			continue;
-		}
-
-		response = redirectedPageResponse;
-	}
-
-	// Required to prevent 403 Forbidden error
-	headers.append('Referer', 'https://zoom.us/');
-
-	const initialPage = await response.text();
-
-	const totalClipCount =
-		Number(initialPage.match(regex.zoomTotalClips)?.[0]) || 1;
-
-	const meetingTopic = (
-		initialPage.match(regex.zoomMeetingTopic)?.[1] || 'topic-not-found'
-	).trim();
-
-	let nextClipStartTime = -1;
-
-	for (let i = 1; i < totalClipCount + 1; i++) {
-		log('├─', `Downloading part ${i}/${totalClipCount}`);
-
-		let clipPage = initialPage;
-
-		if (i !== 1 && nextClipStartTime !== -1) {
-			const clipUrl = `${response.url}&startTime=${nextClipStartTime}`;
-			const clipResponse = await fetch(clipUrl, { headers });
-			if (!clipResponse.ok) {
-				log('├─', styleText('red', 'Clip page fetch has failed.'), 'error');
-				failedRecordingShareUrls.push(url);
-				break;
-			}
-			clipPage = await clipResponse.text();
-		}
-
-		nextClipStartTime = Number(
-			clipPage.match(regex.zoomNextClipStartTime)?.[0] || -1
-		);
-
-		const matchedMediaUrls = [...clipPage.matchAll(regex.zoomMediaUrl)];
-
-		if (!matchedMediaUrls.length) {
-			log('└─', styleText('red', 'No media URLs are found.'), 'error');
-			failedRecordingShareUrls.push(url);
-			continue;
-		}
-
-		for await (const [mediaUrl, filename] of matchedMediaUrls) {
-			log('├─', `Downloading ${styleText('yellow', filename)}`);
-
-			const response = await fetch(mediaUrl, { headers });
-
-			if (!response.ok) {
-				log('├─', styleText('red', 'Media file fetch has failed.'), 'error');
-				failedMediaUrls.push(mediaUrl);
-				continue;
-			}
-
-			const temporaryFilename = `${Date.now()}.part`;
-
-			const writeStream = createWriteStream(
-				`${downloadDirectory}/${temporaryFilename}`
-			);
-
-			// @ts-ignore Reference https://stackoverflow.com/a/66629140/12817553
-			const readable = Readable.fromWeb(response.body);
-
-			readable.pipe(writeStream);
-			const contentLength = Number(response.headers.get('content-length') || 0);
-
-			if (!Number.isNaN(contentLength) && contentLength) {
-				process.stdout.write(
-					`${generateColoredTimestamp()} ${'-'.repeat(100)}`
-				);
-
-				let cumulatedLength = 0;
-				let previousPercentage: number;
-
-				const handleProgress = ({ length }: { length: number }) => {
-					if (length === 0) return;
-
-					cumulatedLength += length;
-
-					const percentage = Math.round(
-						(cumulatedLength / contentLength) * 100
-					);
-					if (previousPercentage === percentage) return;
-
-					previousPercentage = percentage;
-
-					if (percentage === 100) {
-						process.stdout.clearLine(0);
-						process.stdout.cursorTo(0);
-						readable.removeListener('data', handleProgress);
-						return;
-					}
-
-					// Write 100 # from 0% to 99%
-					process.stdout.cursorTo(25 + percentage);
-					process.stdout.write('#');
-				};
-
-				readable.on('data', handleProgress);
-			}
-
-			await new Promise<void>((resolve) => {
-				readable.on('end', () => {
-					const customFilename = safeName(`${meetingTopic} ${filename}`);
-
-					renameSync(
-						`${downloadDirectory}/${temporaryFilename}`,
-						`${downloadDirectory}/${customFilename}`
-					);
-
-					log('├─', `Saved as ${styleText('underscore', customFilename)}`);
-					resolve();
-				});
-				readable.on('error', () => {
-					log('├─', styleText('red', 'Download has failed.'), 'error');
-					failedMediaUrls.push(mediaUrl);
-					resolve();
-				});
-			});
-
-			readable.removeAllListeners();
-		}
-	}
-
-	log('└─', 'Completed.');
+if (!existsSync(urlTextFilename)) {
+	writeFileSync(urlTextFilename, sampleUrls + '\n');
+	throw new Error(
+		`${urlTextFilename} file is not found. A sample ${urlTextFilename} file has been created in the current directory.`
+	);
 }
 
-console.log();
+const urlText = readFileSync(urlTextFilename, { encoding: 'utf-8' });
 
-log(
-	'',
-	`Download completed. Check ${styleText('underscore', downloadDirectory)}.`
+if (urlText.includes(samplePathname))
+	throw new Error(`Sample URL(s) are found. Please remove them from the ${urlTextFilename} file.`);
+
+const recShareUrls = new Set(
+	urlText.match(
+		// Zoom Vanity URLs should be at least 4 characters in length, but there are real-world examples that are shorter.
+		// Reference 'Guidelines for Vanity URL requests' documentation https://support.zoom.us/hc/en-us/articles/215062646
+		/^https:\/\/(?:[a-z][a-z-]{1,}[a-z]\.|us[0-9]{2}web\.)?(?:zoom.us|zoomgov.com)\/rec\/(?:share|play)\/[^\s]+(?:\?pwd=[^?\s]+)?$/gm
+	)
 );
 
-const generateLog = (urls: string[], type: string) =>
-	urls.length
-		? `${urls.length} ${type} URL(s) failed.\n` + urls.join('\n')
-		: '';
+if (!recShareUrls.size)
+	throw new Error(`No valid URL(s) are found. Please check the ${urlTextFilename} file.`);
 
-if (failedRecordingShareUrls.length || failedMediaUrls.length) {
-	const filename = `${Date.now()}.txt`;
+// Global variables
 
-	writeFileSync(
-		`${__dirname}/${filename}`,
-		[
-			generateLog(failedRecordingShareUrls, 'Recording Share'),
-			generateLog(failedMediaUrls, 'Media'),
-		]
-			.filter((v) => v)
-			.join('\n\n')
-	);
+const headers = new Headers({
+	// Required to prevent 403 Forbidden error
+	'Referer': 'https://zoom.us/',
+	// Chrome 111 on macOS
+	'User-Agent':
+		'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
+});
 
-	log('├─', `There are failed attempt(s).`);
-	log(
-		'└─',
-		`Reference ${styleText('underscore', filename)} for more information.`
-	);
+const failedAttempts: Array<string> = [];
+
+const downloadDirectory = `${convertToSafeName(new Date().toISOString())}`;
+
+// Start download(s)
+
+if (!existsSync(downloadDirectory)) mkdirSync(downloadDirectory);
+
+log('', `Found ${recShareUrls.size} valid URLs.`);
+
+for (const recShareUrl of recShareUrls) {
+	log();
+
+	headers.set('cookie', '');
+
+	try {
+		const { origin } = new URL(recShareUrl);
+
+		const recordId = recShareUrl.match(/(?<=share\/|play\/)[^?\s]{20}/)?.[0] || '';
+
+		log('┌', recordId, 'magenta');
+
+		const shareInfoResponse = await fetch(
+			recShareUrl.replace('/rec/share/', '/nws/recording/1.0/play/share-info/'),
+			{ headers }
+		);
+
+		if (!shareInfoResponse.ok) throw new Error('Request to /share-info has failed.');
+
+		const setCookieHeaders = shareInfoResponse.headers
+			.get('set-cookie')
+			?.match(/(_zm_ssid|cred)=([^;]+)/g);
+
+		if (setCookieHeaders) headers.set('cookie', setCookieHeaders.join('; '));
+
+		const { result: shareInfo } = (await shareInfoResponse.json()) as {
+			result: { redirectUrl?: string; pwd?: string };
+		};
+
+		if (!shareInfo.redirectUrl) throw new Error('Record play URL is not found.');
+
+		const recPlayUrl = new URL(shareInfo.redirectUrl, origin);
+
+		if (shareInfo.pwd) recPlayUrl.searchParams.set('pwd', shareInfo.pwd);
+
+		const recPlayResponse = await fetch(recPlayUrl, { headers });
+
+		if (!recPlayResponse.ok) throw new Error('Request to /rec/play has failed.');
+
+		const fileId = (await recPlayResponse.text()).match(
+			// Zoom uses both single and double quotes in JavaScript data.
+			/(?<=fileId: ['"])[^'"]+/
+		)?.[0];
+
+		if (!fileId) throw new Error('File ID is not found.');
+
+		const playInfoUrl = new URL(`/nws/recording/1.0/play/info/${fileId}`, origin);
+
+		if (shareInfo.pwd) playInfoUrl.searchParams.set('pwd', shareInfo.pwd);
+		playInfoUrl.searchParams.set('canPlayFromShare', 'true');
+		playInfoUrl.searchParams.set('from', 'share_recording_detail');
+		playInfoUrl.searchParams.set('continueMode', 'true');
+		playInfoUrl.searchParams.set('componentName', 'rec-play');
+
+		const initPlayInfoResponse = await fetch(playInfoUrl, { headers });
+
+		if (!initPlayInfoResponse.ok) throw new Error('Request to /play/info has failed.');
+
+		type PlayInfo = {
+			meet: { topic: string };
+			totalClips: number;
+			currentClip: number;
+			nextClipStartTime: number;
+		} & Record<string, unknown>;
+
+		const { result: initPlayInfo } = (await initPlayInfoResponse.json()) as { result: PlayInfo };
+
+		let nextClipStartTime = initPlayInfo.nextClipStartTime;
+
+		for (let i = 1; i <= initPlayInfo.totalClips; i++) {
+			log('│');
+
+			if (initPlayInfo.totalClips > 1) log('│', `Processing clip ${i}/${initPlayInfo.totalClips}.`);
+
+			let playInfo = initPlayInfo;
+
+			if (i !== 1) {
+				playInfoUrl.searchParams.set('startTime', nextClipStartTime.toString());
+
+				const playInfoResponse = await fetch(playInfoUrl, { headers });
+
+				if (!playInfoResponse.ok) throw new Error(`Request to /play/info has failed. (${i})`);
+
+				const { result } = (await playInfoResponse.json()) as { result: PlayInfo };
+
+				playInfo = result;
+				nextClipStartTime = result.nextClipStartTime;
+			}
+
+			const mediaUrls = new Set(
+				Object.values(playInfo).filter(
+					(v): v is string =>
+						typeof v === 'string' && /^https:\/\/ssrweb.zoom.us\/[^\s]+(.mp4|.m4a)[^\s]*$/.test(v)
+				)
+			);
+
+			log('│', `Found ${mediaUrls.size} media file(s).`);
+
+			for (const mediaUrl of mediaUrls) {
+				try {
+					const response = await fetch(mediaUrl, { headers });
+
+					if (!response.ok) throw new Error('Requesting the media file has failed.');
+
+					const temporaryFilename = `${Date.now()}.part`;
+
+					const writeStream = createWriteStream(`${downloadDirectory}/${temporaryFilename}`);
+
+					// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+					// @ts-ignore - reference https://stackoverflow.com/a/66629140/12817553
+					const readable = Readable.fromWeb(response.body);
+
+					readable.pipe(writeStream);
+
+					const contentLength = Number(response.headers.get('content-length') || 0);
+
+					if (!Number.isNaN(contentLength) && contentLength) {
+						process.stdout.write('-'.repeat(100));
+
+						let cumulatedLength = 0;
+						let previousPercentage: number;
+
+						const handleProgress = ({ length }: { length: number }) => {
+							if (length === 0) return;
+
+							cumulatedLength += length;
+
+							const percentage = Math.round((cumulatedLength / contentLength) * 100);
+							if (previousPercentage === percentage) return;
+
+							previousPercentage = percentage;
+
+							if (percentage === 100) {
+								process.stdout.clearLine(0);
+								process.stdout.cursorTo(0);
+								readable.removeListener('data', handleProgress);
+								return;
+							}
+
+							// Write 100 # from 0% to 99%
+							process.stdout.cursorTo(percentage);
+							process.stdout.write('#');
+						};
+
+						readable.on('data', handleProgress);
+					}
+
+					const filename = convertToSafeName(
+						`${playInfo.meet.topic} ${mediaUrl.match(/[^/]+(?:\.mp4|\.m4a)/)?.[0] || Date.now()}`
+					);
+
+					await new Promise<void>((resolve) => {
+						readable.on('end', () => {
+							renameSync(
+								`${downloadDirectory}/${temporaryFilename}`,
+								`${downloadDirectory}/${filename}`
+							);
+
+							log('│', `Saved ${styleText('underscore', filename)}`);
+
+							resolve();
+						});
+
+						readable.on('error', () => {
+							failedAttempts.push(`${recShareUrl}\n\t${mediaUrl}`);
+
+							log('│', 'Cannot save the media file.', 'red');
+
+							resolve();
+						});
+					});
+
+					readable.removeAllListeners();
+				} catch (e) {
+					failedAttempts.push(`${recShareUrl}\n\t${mediaUrl}`);
+
+					const message =
+						e instanceof Error && e.message ? e.message : 'Cannot download the media file.';
+
+					log('│', message, 'red');
+
+					continue;
+				}
+			}
+		}
+
+		log('│');
+		log('└', 'Completed.');
+	} catch (e) {
+		failedAttempts.push(recShareUrl);
+
+		const message =
+			e instanceof Error && e.message ? e.message : 'Cannot access the recording information.';
+
+		log('└', message, 'red');
+
+		continue;
+	}
+}
+
+if (failedAttempts.length) {
+	log();
+
+	const logFilename = `${Date.now()}.txt`;
+
+	writeFileSync(logFilename, failedAttempts.join('\n\n') + '\n');
+
+	log('┌', `Found ${failedAttempts.length} failed attempts.`);
+	log('└', `Reference ${styleText('underscore', logFilename)}`);
 }
