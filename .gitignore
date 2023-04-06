@@ -1,9 +1,17 @@
-**/*.m4a
-**/*.mp4
-**/*.part
+sendgrid.json
 urls.txt
 
-**/*.js
+*.m4a
+*.mp4
+*.part
+
+*-failed.txt
+*-processed.txt
+*-requested.txt
+
+*.d.ts
+*.js
+
 node_modules/
 
 .DS_Store

@@ -46,3 +46,15 @@ Need to install the following packages:
   zoom-rec-dl@x.x.x
 Ok to proceed? (y)
 ```
+
+## Advanced
+
+Create a `sendgrid.json` file alongside `urls.txt` to send an email when the download is completed.
+
+```json
+{
+  "API_KEY": "SendGrid-API-Key",
+  "SENDER": "sender@domain.com",
+  "RECEIVER": "receiver@domain.com"
+}
+```
