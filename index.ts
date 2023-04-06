@@ -13,14 +13,18 @@ import { log, styleText } from './src/log.js';
 import { convertToSafeName } from './src/miscellaneous.js';
 import { samplePathname, sampleUrls } from './src/sample.js';
 
+// Configurations
+
+const urlTextFilename = 'urls.txt';
+const sendGridJsonFilename = 'sendgrid.json';
+const downloadDirectory = `${convertToSafeName(new Date().toISOString())}`;
+
 // Startup check
 
 if (typeof fetch === 'undefined')
 	throw new Error(
 		`Fetch API is not supported. Please use Node.js v18 or later. (${process.version})`
 	);
-
-const urlTextFilename = 'urls.txt';
 
 if (!existsSync(urlTextFilename)) {
 	writeFileSync(urlTextFilename, sampleUrls + '\n');
@@ -56,8 +60,6 @@ const headers = new Headers({
 });
 
 const failedAttempts: Array<string> = [];
-
-const downloadDirectory = `${convertToSafeName(new Date().toISOString())}`;
 
 // Start download(s)
 
@@ -231,7 +233,7 @@ for (const recShareUrl of recShareUrls) {
 						readable.on('error', () => {
 							failedAttempts.push(`${recShareUrl}\n\t${mediaUrl}`);
 
-							log('│', 'Cannot save the media file.', 'red');
+							log('│', 'Failed to save the media file.', 'red');
 
 							resolve();
 						});
@@ -242,7 +244,7 @@ for (const recShareUrl of recShareUrls) {
 					failedAttempts.push(`${recShareUrl}\n\t${mediaUrl}`);
 
 					const message =
-						e instanceof Error && e.message ? e.message : 'Cannot download the media file.';
+						e instanceof Error && e.message ? e.message : 'Failed to download the media file.';
 
 					log('│', message, 'red');
 
@@ -257,7 +259,7 @@ for (const recShareUrl of recShareUrls) {
 		failedAttempts.push(recShareUrl);
 
 		const message =
-			e instanceof Error && e.message ? e.message : 'Cannot access the recording information.';
+			e instanceof Error && e.message ? e.message : 'Failed to access the recording information.';
 
 		log('└', message, 'red');
 
@@ -267,16 +269,85 @@ for (const recShareUrl of recShareUrls) {
 
 const now = Date.now();
 
-writeFileSync(`${downloadDirectory}/${now}-requested.txt`, urlText);
-writeFileSync(`${downloadDirectory}/${now}-processed.txt`, [...recShareUrls].join('\n') + '\n');
+const logs = {
+	processed: [...recShareUrls].join('\n'),
+	failed: failedAttempts.join('\n\n'),
+};
 
-if (failedAttempts.length) {
+// Write local logs
+
+writeFileSync(`${downloadDirectory}/${now}-requested.txt`, urlText);
+writeFileSync(`${downloadDirectory}/${now}-processed.txt`, logs.processed);
+
+if (logs.failed) {
 	log();
 
 	const failedLogPath = `${downloadDirectory}/${now}-failed.txt`;
 
-	writeFileSync(failedLogPath, failedAttempts.join('\n\n') + '\n');
+	writeFileSync(failedLogPath, logs.failed);
 
 	log('┌', `Found ${failedAttempts.length} failed attempts.`);
 	log('└', `Reference ${styleText('underscore', failedLogPath)}`);
+}
+
+// Send logs via email
+
+if (existsSync(sendGridJsonFilename)) {
+	log();
+	log('┌', 'Found SendGrid configuration file.');
+
+	try {
+		const { API_KEY, SENDER, RECEIVER } = JSON.parse(
+			readFileSync(sendGridJsonFilename, { encoding: 'utf-8' })
+		);
+
+		if (
+			!API_KEY ||
+			typeof API_KEY !== 'string' ||
+			!SENDER ||
+			typeof SENDER !== 'string' ||
+			!RECEIVER ||
+			typeof RECEIVER !== 'string'
+		)
+			throw new Error(`Invalid configuration. Please check the ${sendGridJsonFilename} file.`);
+
+		const attachments = Object.entries(logs)
+			.filter(([, value]) => value)
+			.map(([key, value]) => ({
+				content: Buffer.from(value).toString('base64'),
+				type: 'text/plain',
+				filename: `${key}.txt`,
+			}));
+
+		const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+			method: 'POST',
+			headers: {
+				'Authorization': `Bearer ${API_KEY}`,
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				personalizations: [{ to: [{ email: RECEIVER }] }],
+				from: { email: SENDER },
+				subject: `[zoom-rec-dl] ${downloadDirectory}`,
+				attachments,
+				content: [
+					{
+						type: 'text/plain',
+						value: [
+							`- ${recShareUrls.size} Processed URLs.`,
+							`- ${failedAttempts.length} Failed Attempts.`,
+						].join('\n'),
+					},
+				],
+			}),
+		});
+
+		if (!response.ok) throw new Error();
+
+		log('└', 'Sent logs via configured email.');
+	} catch (e) {
+		const message = e instanceof Error && e.message ? e.message : 'Failed to send logs via email.';
+
+		log('└', message, 'red');
+	}
 }
