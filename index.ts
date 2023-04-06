@@ -265,13 +265,18 @@ for (const recShareUrl of recShareUrls) {
 	}
 }
 
+const now = Date.now();
+
+writeFileSync(`${downloadDirectory}/${now}-requested.txt`, urlText);
+writeFileSync(`${downloadDirectory}/${now}-processed.txt`, [...recShareUrls].join('\n') + '\n');
+
 if (failedAttempts.length) {
 	log();
 
-	const logFilename = `${Date.now()}.txt`;
+	const failedLogPath = `${downloadDirectory}/${now}-failed.txt`;
 
-	writeFileSync(logFilename, failedAttempts.join('\n\n') + '\n');
+	writeFileSync(failedLogPath, failedAttempts.join('\n\n') + '\n');
 
 	log('┌', `Found ${failedAttempts.length} failed attempts.`);
-	log('└', `Reference ${styleText('underscore', logFilename)}`);
+	log('└', `Reference ${styleText('underscore', failedLogPath)}`);
 }
