@@ -271,7 +271,7 @@ if (failedRecordingShareUrls.length || failedMediaUrls.length) {
 	const filename = `${Date.now()}.txt`;
 
 	writeFileSync(
-		`${__dirname}/${filename}`,
+		filename,
 		[
 			generateLog(failedRecordingShareUrls, 'Recording Share'),
 			generateLog(failedMediaUrls, 'Media'),
