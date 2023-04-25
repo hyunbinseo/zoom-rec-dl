@@ -2,4 +2,5 @@ export const convertToSafeName = (name: string) =>
 	name
 		.replaceAll(' / ', ', ')
 		.replaceAll(': ', ' - ')
-		.replaceAll(/[<>:"/\\|?*]/g, '-');
+		.replace(/[<>:"/\\|?*]/g, '-')
+		.replace(/-{2,}/g, '-');
