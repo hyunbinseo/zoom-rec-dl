@@ -93,11 +93,18 @@ for (const recShareUrl of recShareUrls) {
 		if (setCookieHeaders) headers.set('cookie', setCookieHeaders.join('; '));
 
 		const { result: shareInfo } = (await shareInfoResponse.json()) as {
-			result: null | { redirectUrl?: string; pwd?: string };
+			result: null | {
+				hasValidToken?: boolean;
+				pwd?: string;
+				redirectUrl?: string;
+			};
 		};
 
 		if (!shareInfo)
 			throw new Error('Recording does not exist. Check if the URL requires a password.');
+
+		if (shareInfo.hasValidToken === false)
+			throw new Error('Valid token is not found. Check if the URL requires additional actions.');
 
 		if (!shareInfo.redirectUrl) throw new Error('Record play URL is not found.');
 
