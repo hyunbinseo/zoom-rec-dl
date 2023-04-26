@@ -75,12 +75,12 @@ for (const recShareUrl of recShareUrls) {
 	try {
 		const { origin } = new URL(recShareUrl);
 
-		const recordId = recShareUrl.match(/(?<=share\/|play\/)[^?\s]{20}/)?.[0] || '';
+		const recordId = recShareUrl.match(/(?<=(share|play)\/)[^?\s]{20}/)?.[0] || '';
 
 		log('┌', recordId, 'magenta');
 
 		const shareInfoResponse = await fetch(
-			recShareUrl.replace('/rec/share/', '/nws/recording/1.0/play/share-info/'),
+			recShareUrl.replace(/\/rec\/(share|play)\//, '/nws/recording/1.0/play/share-info/'),
 			{ headers }
 		);
 
@@ -93,8 +93,11 @@ for (const recShareUrl of recShareUrls) {
 		if (setCookieHeaders) headers.set('cookie', setCookieHeaders.join('; '));
 
 		const { result: shareInfo } = (await shareInfoResponse.json()) as {
-			result: { redirectUrl?: string; pwd?: string };
+			result: null | { redirectUrl?: string; pwd?: string };
 		};
+
+		if (!shareInfo)
+			throw new Error('Recording does not exist. Check if the URL requires a password.');
 
 		if (!shareInfo.redirectUrl) throw new Error('Record play URL is not found.');
 
