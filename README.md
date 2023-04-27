@@ -18,10 +18,11 @@ For protected cloud recordings, the shareable link
 - Should show a media player and a download button.
 - Should not show an 'Enter the passcode to watch'.
 
-Reference the [documentation](https://support.zoom.us/hc/en-us/articles/11692220055821) and enable the following settings in the Zoom web portal.
+Reference the [documentation](https://support.zoom.us/hc/en-us/articles/11692220055821) and update the following settings in the Zoom web portal.
 
-- Require passcode to access shared cloud recordings
-- Embed passcode in the shareable link for one-click access
+- [x] Require passcode to access shared cloud recordings
+- [x] Embed passcode in the shareable link for one-click access
+- [ ] Set recording as on-demand by default - Users must register before they can watch the recording
 
 ## Prerequisites
 
