@@ -9,6 +9,7 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { Readable } from 'node:stream';
+import { generateSgSendRequest } from 'sendgrid-send';
 import { log, styleText } from './src/log.js';
 import { convertToSafeName } from './src/miscellaneous.js';
 import { samplePathname, sampleUrls } from './src/sample.js';
@@ -281,7 +282,7 @@ const now = Date.now();
 
 const logs = {
 	processed: [...recShareUrls].join('\n'),
-	failed: failedAttempts.join('\n\n'),
+	failed: failedAttempts.join('\n'),
 };
 
 // Write local logs
@@ -311,46 +312,37 @@ if (existsSync(sendGridJsonFilename)) {
 			readFileSync(sendGridJsonFilename, { encoding: 'utf-8' })
 		);
 
-		if (
-			!API_KEY ||
-			typeof API_KEY !== 'string' ||
-			!SENDER ||
-			typeof SENDER !== 'string' ||
-			!RECEIVER ||
-			typeof RECEIVER !== 'string'
-		)
+		if ([API_KEY, SENDER, RECEIVER].some((value) => !value || typeof value !== 'string'))
 			throw new Error(`Invalid configuration. Please check the ${sendGridJsonFilename} file.`);
 
-		const attachments = Object.entries(logs)
-			.filter(([, value]) => value)
-			.map(([key, value]) => ({
-				content: Buffer.from(value).toString('base64'),
-				type: 'text/plain',
-				filename: `${key}.txt`,
-			}));
-
-		const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-			method: 'POST',
-			headers: {
-				'Authorization': `Bearer ${API_KEY}`,
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify({
-				personalizations: [{ to: [{ email: RECEIVER }] }],
-				from: { email: SENDER },
-				subject: `[zoom-rec-dl] ${downloadDirectory}`,
-				attachments,
-				content: [
-					{
-						type: 'text/plain',
-						value: [
-							`- ${recShareUrls.size} Processed URLs.`,
-							`- ${failedAttempts.length} Failed Attempts.`,
-						].join('\n'),
-					},
-				],
-			}),
-		});
+		const response = await fetch(
+			generateSgSendRequest(
+				{
+					from: { email: SENDER },
+					personalizations: [{ to: [{ email: RECEIVER }] }],
+					subject: `[zoom-rec-dl] ${downloadDirectory}`,
+					content: [
+						{
+							type: 'text/html',
+							value: [
+								'<ul>',
+								`<li>${recShareUrls.size} URL(s) have been processed.</li>`,
+								`<li>${failedAttempts.length || 'No'} attempt(s) have failed.</li>`,
+								'</ul>',
+							].join(''),
+						},
+					],
+					attachments: Object.entries(logs)
+						.filter(([, content]) => content)
+						.map(([type, content]) => ({
+							type: 'text/plain',
+							filename: `${type}.txt`,
+							content: Buffer.from(content).toString('base64'),
+						})),
+				},
+				API_KEY
+			)
+		);
 
 		if (!response.ok) throw new Error();
 

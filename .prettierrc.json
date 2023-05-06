@@ -1,12 +1,5 @@
 {
-	"overrides": [
-		{
-			"files": "*.md",
-			"options": {
-				"useTabs": false
-			}
-		}
-	],
+	"overrides": [{ "files": "*.md", "options": { "useTabs": false } }],
 	"printWidth": 100,
 	"quoteProps": "consistent",
 	"singleQuote": true,

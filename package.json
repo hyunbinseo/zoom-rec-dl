@@ -3,6 +3,9 @@
 	"description": "Save Zoom cloud recordings to a local directory.",
 	"version": "2.1.2",
 	"license": "MIT",
+	"dependencies": {
+		"sendgrid-send": "^1.0.1"
+	},
 	"devDependencies": {
 		"@types/node": "^18.15.0",
 		"@typescript-eslint/eslint-plugin": "^5.57.0",
