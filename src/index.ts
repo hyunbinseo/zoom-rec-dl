@@ -326,7 +326,7 @@ if (existsSync(sendGridJsonFilename)) {
 							type: 'text/html',
 							value: [
 								'<ul>',
-								`<li>${recShareUrls.size} URL(s) have been processed.</li>`,
+								`<li>${recShareUrls.size} recording(s) have been processed.</li>`,
 								`<li>${failedAttempts.length || 'No'} attempt(s) have failed.</li>`,
 								'</ul>',
 							].join(''),

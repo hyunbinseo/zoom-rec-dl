@@ -4,7 +4,7 @@
 	"version": "2.1.2",
 	"license": "MIT",
 	"dependencies": {
-		"sendgrid-send": "^1.0.1"
+		"sendgrid-send": "^1.0.2"
 	},
 	"devDependencies": {
 		"@types/node": "^18.15.0",

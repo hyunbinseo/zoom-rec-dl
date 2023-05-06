@@ -11,11 +11,7 @@ type AnsiEscapeCode = keyof typeof ansiEscapeCodes;
 export const styleText = (style: AnsiEscapeCode, text: string | number) =>
 	`${ansiEscapeCodes[style]}${text}\x1b[0m`;
 
-export const log = (
-	prefix: '┌' | '│' | '└' | '' = '',
-	message = '',
-	style?: AnsiEscapeCode
-) => {
+export const log = (prefix: '┌' | '│' | '└' | '' = '', message = '', style?: AnsiEscapeCode) => {
 	if (!prefix && !message) {
 		console.log(); // Blank line
 	} else {
