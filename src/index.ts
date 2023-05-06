@@ -10,9 +10,9 @@ import {
 } from 'node:fs';
 import { Readable } from 'node:stream';
 import { generateSgSendRequest } from 'sendgrid-send';
-import { log, styleText } from './src/log.js';
-import { convertToSafeName } from './src/miscellaneous.js';
-import { samplePathname, sampleUrls } from './src/sample.js';
+import { log, styleText } from './log.js';
+import { samplePathname, sampleUrls } from './sample.js';
+import { convertToSafeName } from './utilities.js';
 
 // Configurations
 

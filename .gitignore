@@ -1,18 +1,16 @@
+dist
+node_modules
+
 sendgrid.json
 urls.txt
-
-*.m4a
-*.mp4
-*.part
 
 *-failed.txt
 *-processed.txt
 *-requested.txt
 
-*.d.ts
-*.js
-
-node_modules/
+*.m4a
+*.mp4
+*.part
 
 .DS_Store
 Thumbs.db

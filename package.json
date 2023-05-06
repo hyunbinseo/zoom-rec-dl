@@ -15,9 +15,9 @@
 		"typescript": "^5.0.2"
 	},
 	"type": "module",
-	"main": "index.js",
+	"main": "dist/index.js",
 	"bin": {
-		"zoom-rec-dl": "./index.js"
+		"zoom-rec-dl": "./dist/index.js"
 	},
 	"files": [
 		"**/*.js"
