@@ -1,7 +1,7 @@
 {
 	"name": "zoom-rec-dl",
 	"description": "Save Zoom cloud recordings to a local directory.",
-	"version": "2.1.4",
+	"version": "2.1.6",
 	"license": "MIT",
 	"dependencies": {
 		"sendgrid-send": "^1.0.2",
