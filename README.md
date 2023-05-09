@@ -56,6 +56,15 @@ Create a `sendgrid.json` file alongside `urls.txt` to send an email when the dow
 {
   "API_KEY": "SendGrid-API-Key",
   "SENDER": "sender@domain.com",
-  "RECEIVER": "receiver@domain.com"
+  "RECEIVERS": ["receiver@domain.com"]
+}
+```
+
+```typescript
+{
+  API_KEY: string;
+  SENDER: string;
+  RECEIVER?: string | undefined;
+  RECEIVERS?: string[] | undefined;
 }
 ```

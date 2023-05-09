@@ -10,6 +10,7 @@ import {
 } from 'node:fs';
 import { Readable } from 'node:stream';
 import { generateSgSendRequest } from 'sendgrid-send';
+import { z } from 'zod';
 import { log, styleText } from './log.js';
 import { samplePathname, sampleUrls } from './sample.js';
 import { convertToSafeName } from './utilities.js';
@@ -308,18 +309,28 @@ if (existsSync(sendGridJsonFilename)) {
 	log('┌', 'Found SendGrid configuration file.');
 
 	try {
-		const { API_KEY, SENDER, RECEIVER } = JSON.parse(
-			readFileSync(sendGridJsonFilename, { encoding: 'utf-8' })
-		);
+		const result = z
+			.object({
+				API_KEY: z.string(),
+				SENDER: z.string().email(),
+				RECEIVER: z.string().email().optional(),
+				RECEIVERS: z.string().email().array().min(1).optional(),
+			})
+			.safeParse(JSON.parse(readFileSync(sendGridJsonFilename, { encoding: 'utf-8' })));
 
-		if ([API_KEY, SENDER, RECEIVER].some((value) => !value || typeof value !== 'string'))
-			throw new Error(`Invalid configuration. Please check the ${sendGridJsonFilename} file.`);
+		if (!result.success) throw new Error('Configuration is not valid.');
+
+		const { API_KEY, SENDER, RECEIVER, RECEIVERS } = result.data;
+
+		const receivers = RECEIVERS || [];
+		if (RECEIVER) receivers.push(RECEIVER);
+		if (!receivers.length) throw new Error('Email receiver(s) are not found.');
 
 		const response = await fetch(
 			generateSgSendRequest(
 				{
 					from: { email: SENDER },
-					personalizations: [{ to: [{ email: RECEIVER }] }],
+					personalizations: [{ to: receivers.map((email) => ({ email })) }],
 					subject: `[zoom-rec-dl] ${downloadDirectory}`,
 					content: [
 						{
