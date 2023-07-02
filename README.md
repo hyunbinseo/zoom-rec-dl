@@ -20,9 +20,22 @@ For protected cloud recordings, the shareable link
 
 Reference the [documentation](https://support.zoom.us/hc/en-us/articles/11692220055821) and update the following settings in the Zoom web portal.
 
-- [x] Require passcode to access shared cloud recordings
-- [x] Embed passcode in the shareable link for one-click access
-- [ ] Set recording as on-demand by default - Users must register before they can watch the recording
+```
+ADMIN / Account Management / Account Settings
+e.g. https://us06web.zoom.us/account/setting
+
+[v] Allow cloud recording sharing - By disabling this setting, nobody else except the host can access the shareable link.
+
+[v] Cloud recording downloads - Allow anyone with a link to the cloud recording to download
+[ ] └── Only the host can download cloud recordings
+
+[ ] Require users to authenticate before viewing cloud recordings
+
+[ ] Set recording as on-demand by default - Users must register before they can watch the recording
+
+[v] Require passcode to access shared cloud recordings
+[v] └── Embed passcode in the shareable link for one-click access
+```
 
 ## Prerequisites
 
