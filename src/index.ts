@@ -26,13 +26,13 @@ const downloadDirectory = `${convertToSafeName(new Date().toISOString())}`;
 
 if (typeof fetch === 'undefined')
 	throw new Error(
-		`Fetch API is not supported. Please use Node.js v18 or later. (${process.version})`
+		`Fetch API is not supported. Please use Node.js v18 or later. (${process.version})`,
 	);
 
 if (!existsSync(urlTextFilename)) {
 	writeFileSync(urlTextFilename, sampleUrls + '\n');
 	throw new Error(
-		`${urlTextFilename} file is not found. A sample ${urlTextFilename} file has been created in the current directory.`
+		`${urlTextFilename} file is not found. A sample ${urlTextFilename} file has been created in the current directory.`,
 	);
 }
 
@@ -45,8 +45,8 @@ const recShareUrls = new Set(
 	urlText.match(
 		// Zoom Vanity URLs should be at least 4 characters in length, but there are real-world examples that are shorter.
 		// Reference 'Guidelines for Vanity URL requests' documentation https://support.zoom.us/hc/en-us/articles/215062646
-		/^https:\/\/(?:[a-z][a-z-]{1,}[a-z]\.|us[0-9]{2}web\.)?(?:zoom.us|zoomgov.com)\/rec\/(?:share|play)\/[^\s]+(?:\?pwd=[^?\s]+)?$/gm
-	)
+		/^https:\/\/(?:[a-z][a-z-]{1,}[a-z]\.|us[0-9]{2}web\.)?(?:zoom.us|zoomgov.com)\/rec\/(?:share|play)\/[^\s]+(?:\?pwd=[^?\s]+)?$/gm,
+	),
 );
 
 if (!recShareUrls.size)
@@ -84,7 +84,7 @@ for (const recShareUrl of recShareUrls) {
 
 		const shareInfoResponse = await fetch(
 			recShareUrl.replace(/\/rec\/(share|play)\//, '/nws/recording/1.0/play/share-info/'),
-			{ headers }
+			{ headers },
 		);
 
 		if (!shareInfoResponse.ok) throw new Error('Request to /share-info has failed.');
@@ -121,7 +121,7 @@ for (const recShareUrl of recShareUrls) {
 
 		const fileId = (await recPlayResponse.text()).match(
 			// Zoom uses both single and double quotes in JavaScript data.
-			/(?<=fileId: ['"])[^'"]+/
+			/(?<=fileId: ['"])[^'"]+/,
 		)?.[0];
 
 		if (!fileId) throw new Error('File ID is not found.');
@@ -172,8 +172,8 @@ for (const recShareUrl of recShareUrls) {
 			const mediaUrls = new Set(
 				Object.values(playInfo).filter(
 					(v): v is string =>
-						typeof v === 'string' && /^https:\/\/ssrweb.zoom.us\/[^\s]+(.mp4|.m4a)[^\s]*$/.test(v)
-				)
+						typeof v === 'string' && /^https:\/\/ssrweb.zoom.us\/[^\s]+(.mp4|.m4a)[^\s]*$/.test(v),
+				),
 			);
 
 			log('│', `Found ${mediaUrls.size} media file(s).`);
@@ -228,14 +228,14 @@ for (const recShareUrl of recShareUrls) {
 					}
 
 					const filename = convertToSafeName(
-						`${playInfo.meet.topic} ${mediaUrl.match(/[^/]+(?:\.mp4|\.m4a)/)?.[0] || Date.now()}`
+						`${playInfo.meet.topic} ${mediaUrl.match(/[^/]+(?:\.mp4|\.m4a)/)?.[0] || Date.now()}`,
 					);
 
 					await new Promise<void>((resolve) => {
 						readable.on('end', () => {
 							renameSync(
 								`${downloadDirectory}/${temporaryFilename}`,
-								`${downloadDirectory}/${filename}`
+								`${downloadDirectory}/${filename}`,
 							);
 
 							log('│', `Saved ${styleText('underscore', filename)}`);
@@ -357,8 +357,8 @@ if (existsSync(sendGridJsonFilename)) {
 							content: Buffer.from(content).toString('base64'),
 						})),
 				},
-				API_KEY
-			)
+				API_KEY,
+			),
 		);
 
 		if (!response.ok) throw new Error();
