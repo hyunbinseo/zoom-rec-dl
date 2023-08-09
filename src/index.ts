@@ -6,6 +6,7 @@ import {
 	mkdirSync,
 	readFileSync,
 	renameSync,
+	unlinkSync,
 	writeFileSync,
 } from 'node:fs';
 import { Readable } from 'node:stream';
@@ -178,12 +179,12 @@ for (const recShareUrl of recShareUrls) {
 			log('│', `Found ${mediaUrls.size} media file(s).`);
 
 			for (const mediaUrl of mediaUrls) {
+				const temporaryFilename = `${Date.now()}.part`;
+
 				try {
 					const response = await fetch(mediaUrl, { headers });
 
 					if (!response.ok) throw new Error('Requesting the media file has failed.');
-
-					const temporaryFilename = `${Date.now()}.part`;
 
 					const writeStream = createWriteStream(`${downloadDirectory}/${temporaryFilename}`);
 
@@ -253,6 +254,11 @@ for (const recShareUrl of recShareUrls) {
 
 					readable.removeAllListeners();
 				} catch (e) {
+					try {
+						if (existsSync(temporaryFilename)) unlinkSync(temporaryFilename);
+						// eslint-disable-next-line no-empty
+					} catch {}
+
 					failedAttempts.push(`${recShareUrl}\n\t${mediaUrl}`);
 
 					const message =
