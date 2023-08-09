@@ -14,7 +14,7 @@ import { generateSgSendRequest } from 'sendgrid-send';
 import { z } from 'zod';
 import { log, styleText } from './log.js';
 import { samplePathname, sampleUrls } from './sample.js';
-import { convertToSafeName } from './utilities.js';
+import { convertToSafeName, trimUrlSearchParams } from './utilities.js';
 
 // Configurations
 
@@ -231,39 +231,36 @@ for (const recShareUrl of recShareUrls) {
 						`${playInfo.meet.topic} ${mediaUrl.match(/[^/]+(?:\.mp4|\.m4a)/)?.[0] || Date.now()}`,
 					);
 
-					await new Promise<void>((resolve) => {
-						readable.on('end', () => {
-							renameSync(
-								`${downloadDirectory}/${temporaryFilename}`,
-								`${downloadDirectory}/${filename}`,
-							);
-
-							log('│', `Saved ${styleText('underscore', filename)}`);
-
-							resolve();
-						});
-
-						readable.on('error', () => {
-							failedAttempts.push(`${recShareUrl}\n\t${mediaUrl}`);
-
-							log('│', 'Failed to save the media file.', 'red');
-
-							resolve();
-						});
-					});
-
-					readable.removeAllListeners();
-				} catch (e) {
 					try {
-						if (existsSync(temporaryFilename)) unlinkSync(temporaryFilename);
-						// eslint-disable-next-line no-empty
-					} catch {}
+						await new Promise<void>((resolve, reject) => {
+							readable.on('end', () => {
+								renameSync(
+									`${downloadDirectory}/${temporaryFilename}`,
+									`${downloadDirectory}/${filename}`,
+								);
+								log('│', `Saved ${styleText('underscore', filename)}`);
+								resolve();
+							});
 
-					failedAttempts.push(`${recShareUrl}\n\t${mediaUrl}`);
+							readable.on('error', () => {
+								reject(new Error('Failed to stream the media file.'));
+							});
+						});
+					} finally {
+						readable.removeAllListeners();
+						readable.destroy();
+						writeStream.end();
+						if (existsSync(temporaryFilename)) unlinkSync(temporaryFilename);
+					}
+				} catch (e) {
+					failedAttempts.push(
+						trimUrlSearchParams(recShareUrl) + '\n' + trimUrlSearchParams(mediaUrl),
+					);
 
 					const message =
 						e instanceof Error && e.message ? e.message : 'Failed to download the media file.';
 
+					process.stdout.write('\n');
 					log('│', message, 'red');
 
 					continue;
@@ -274,7 +271,7 @@ for (const recShareUrl of recShareUrls) {
 		log('│');
 		log('└', 'Completed.');
 	} catch (e) {
-		failedAttempts.push(recShareUrl);
+		failedAttempts.push(trimUrlSearchParams(recShareUrl));
 
 		const message =
 			e instanceof Error && e.message ? e.message : 'Failed to access the recording information.';
@@ -288,8 +285,8 @@ for (const recShareUrl of recShareUrls) {
 const now = Date.now();
 
 const logs = {
-	processed: [...recShareUrls].join('\n'),
-	failed: failedAttempts.join('\n'),
+	processed: [...recShareUrls].join('\n') + '\n',
+	failed: failedAttempts.join('\n\n') + '\n',
 };
 
 // Write local logs
