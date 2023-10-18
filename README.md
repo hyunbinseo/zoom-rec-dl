@@ -61,6 +61,8 @@ Ok to proceed? (y) ← Press enter
 
 ## Advanced
 
+### Get Notification on Completion
+
 Create a `sendgrid.json` file alongside `urls.txt` to send an email when the download is completed.
 
 ```json
@@ -71,11 +73,32 @@ Create a `sendgrid.json` file alongside `urls.txt` to send an email when the dow
 }
 ```
 
-```typescript
-{
-  API_KEY: string;
-  SENDER: string;
-  RECEIVER?: string | undefined;
-  RECEIVERS?: string[] | undefined;
-}
+### Periodically Download Recordings
+
+Use the following command to download recordings regularly. [pm2] should be installed globally.
+
+[pm2]: https://pm2.keymetrics.io/docs/usage/quick-start/
+
+```shell
+# Example command
+% pm2 start "npx zoom-rec-dl@latest" --name "Zoom Download" --time --no-autorestart --cron "0 0 * * *"
+
+# Runs every midnight based on the system time.
+# pnpm users can replace `npx` with `pnpm dlx`.
+```
+
+```shell
+# CLI Options
+
+# Specify an app name
+--name <app_name>
+
+# Prefix logs with time
+--time
+
+# Do not auto restart app
+--no-autorestart
+
+# Specify cron for forced restart
+--cron <cron_pattern>
 ```
