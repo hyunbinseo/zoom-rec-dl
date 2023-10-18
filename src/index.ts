@@ -21,6 +21,7 @@ import { convertToSafeName, trimUrlSearchParams } from './utilities.js';
 const urlTextFilename = 'urls.txt';
 const sendGridJsonFilename = 'sendgrid.json';
 const downloadDirectory = `${convertToSafeName(new Date().toISOString())}`;
+const { isTTY } = process.stdout;
 
 // Startup check
 
@@ -197,7 +198,7 @@ for (const recShareUrl of recShareUrls) {
 					const contentLength = Number(response.headers.get('content-length') || 0);
 
 					if (!Number.isNaN(contentLength) && contentLength) {
-						process.stdout.write('-'.repeat(100));
+						if (isTTY) process.stdout.write('-'.repeat(100));
 
 						let cumulatedLength = 0;
 						let previousPercentage: number;
@@ -213,15 +214,15 @@ for (const recShareUrl of recShareUrls) {
 							previousPercentage = percentage;
 
 							if (percentage === 100) {
-								process.stdout.clearLine(0);
-								process.stdout.cursorTo(0);
+								if (isTTY) process.stdout.clearLine(0);
+								if (isTTY) process.stdout.cursorTo(0);
 								readable.removeListener('data', handleProgress);
 								return;
 							}
 
 							// Write 100 # from 0% to 99%
-							process.stdout.cursorTo(percentage);
-							process.stdout.write('#');
+							if (isTTY) process.stdout.cursorTo(percentage);
+							if (isTTY) process.stdout.write('#');
 						};
 
 						readable.on('data', handleProgress);
@@ -260,7 +261,7 @@ for (const recShareUrl of recShareUrls) {
 					const message =
 						e instanceof Error && e.message ? e.message : 'Failed to download the media file.';
 
-					process.stdout.write('\n');
+					if (isTTY) process.stdout.write('\n');
 					log('│', message, 'red');
 
 					continue;
