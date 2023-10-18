@@ -4,16 +4,16 @@
 	"version": "2.1.9",
 	"license": "MIT",
 	"dependencies": {
-		"sendgrid-send": "^1.0.2",
-		"zod": "^3.21.4"
+		"sendgrid-send": "^1.0.7",
+		"zod": "^3.22.4"
 	},
 	"devDependencies": {
-		"@types/node": "^18.15.0",
-		"@typescript-eslint/eslint-plugin": "^6.3.0",
-		"@typescript-eslint/parser": "^6.3.0",
-		"eslint": "^8.37.0",
-		"prettier": "^3.0.1",
-		"typescript": "^5.0.2"
+		"@types/node": "^18.18.5",
+		"@typescript-eslint/eslint-plugin": "^6.8.0",
+		"@typescript-eslint/parser": "^6.8.0",
+		"eslint": "^8.51.0",
+		"prettier": "^3.0.3",
+		"typescript": "^5.2.2"
 	},
 	"type": "module",
 	"main": "dist/index.js",
