@@ -46,19 +46,17 @@ e.g. https://us06web.zoom.us/account/setting
 
 ## Instructions
 
-1. Create a `urls.txt` file in a desired place.
-2. Add URLs to the text file, one in each line.
-3. Open a terminal window in the directory.[^open-terminal]
-4. Execute command `npx zoom-rec-dl@latest`
+1. Create a `urls.txt` file and add URLs to the text file, one in each line.
+2. Open a terminal in the directory where the `urls.txt` file is located.[^open-terminal]
+3. Execute the `npx zoom-rec-dl@latest` command[^pnpm] in the terminal.
 
 [^open-terminal]: When `ls` or `dir` command is executed, the `urls.txt` file should be listed.
-
-Press enter if the following message is shown.
+[^pnpm]: pnpm users can use the `pnpm dlx zoom-rec-dl@latest` command instead.
 
 ```
 Need to install the following packages:
   zoom-rec-dl@x.x.x
-Ok to proceed? (y)
+Ok to proceed? (y) ← Press enter
 ```
 
 ## Advanced
