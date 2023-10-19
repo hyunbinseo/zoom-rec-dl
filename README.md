@@ -61,7 +61,7 @@ Ok to proceed? (y) ← Press enter
 
 ## Advanced
 
-### Get Notification on Completion
+### Get Notified on Completion
 
 Create a `sendgrid.json` file alongside `urls.txt` to send an email when the download is completed.
 
@@ -73,32 +73,22 @@ Create a `sendgrid.json` file alongside `urls.txt` to send an email when the dow
 }
 ```
 
-### Periodically Download Recordings
+### Automatically Start Download
 
-Use the following command to download recordings regularly. [pm2] should be installed globally.
+Modifying the `urls.txt` file triggers the download process. [pm2] package should be [globally installed].
 
-[pm2]: https://pm2.keymetrics.io/docs/usage/quick-start/
+[pm2]: https://github.com/Unitech/pm2#readme
+[globally installed]: https://pm2.keymetrics.io/docs/usage/quick-start/
 
 ```shell
-# Example command
-% pm2 start "npx zoom-rec-dl@latest" --name "Zoom Download" --time --no-autorestart --cron "0 0 * * *"
-
-# Runs every midnight based on the system time.
 # pnpm users can replace `npx` with `pnpm dlx`.
+% pm2 start "npx zoom-rec-dl@latest" --name "Zoom Download" --watch "urls.txt" --time --no-autorestart
 ```
 
 ```shell
-# CLI Options
-
-# Specify an app name
---name <app_name>
-
-# Prefix logs with time
---time
-
-# Do not auto restart app
---no-autorestart
-
-# Specify cron for forced restart
---cron <cron_pattern>
+# pm2 CLI Options
+--name <app_name>   # Specify an app name
+--watch             # Watch and Restart app when files change
+--time              # Prefix logs with time
+--no-autorestart    # Do not auto restart app
 ```
