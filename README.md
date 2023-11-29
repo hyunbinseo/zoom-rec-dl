@@ -73,22 +73,33 @@ Create a `sendgrid.json` file alongside `urls.txt` to send an email when the dow
 }
 ```
 
-### Automatically Start Download
+### Automatically Start Downloading
 
-Modifying the `urls.txt` file triggers the download process. [pm2] package should be [globally installed].
+Modify the `urls.txt` file to trigger a download process.
 
-[pm2]: https://github.com/Unitech/pm2#readme
-[globally installed]: https://pm2.keymetrics.io/docs/usage/quick-start/
+1. Install the [PM2] process manager [globally].
+2. Install the [PM2 log rotating module].
+3. Create a `ecosystem.config.js` file.
 
-```shell
-# pnpm users can replace `npx` with `pnpm dlx`.
-% pm2 start "npx zoom-rec-dl@latest" --name "Zoom Download" --watch "urls.txt" --time --no-autorestart
+[PM2]: https://github.com/Unitech/pm2#readme
+[globally]: https://pm2.keymetrics.io/docs/usage/quick-start/
+[PM2 log rotating module]: https://github.com/keymetrics/pm2-logrotate#readme
+
+```javascript
+// ecosystem.config.js - should be placed alongside the `urls.txt` file.
+// Reference https://pm2.keymetrics.io/docs/usage/application-declaration/
+module.exports = {
+  apps: [
+    {
+      name: 'zoom-download',
+      script: 'npx zoom-rec-dl@latest',
+      // script: 'pnpm dlx zoom-rec-dl@latest',
+      watch: ['urls.txt'],
+      time: true,
+      autorestart: false,
+    },
+  ],
+};
 ```
 
-```shell
-# pm2 CLI Options
---name <app_name>   # Specify an app name
---watch             # Watch and Restart app when files change
---time              # Prefix logs with time
---no-autorestart    # Do not auto restart app
-```
+4. Run `pm2 start` and start the watch process.
