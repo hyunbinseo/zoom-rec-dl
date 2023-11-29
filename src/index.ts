@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { sendEmail } from 'new-request/email/send-grid/v3';
 import {
 	createWriteStream,
 	existsSync,
@@ -10,10 +11,10 @@ import {
 	writeFileSync,
 } from 'node:fs';
 import { Readable } from 'node:stream';
-import { generateSgSendRequest } from 'sendgrid-send';
-import { z } from 'zod';
+import { safeParse } from 'valibot';
 import { log, styleText } from './log.js';
 import { samplePathname, sampleUrls } from './sample.js';
+import { sendGridConfigSchema } from './schema.js';
 import { convertToSafeName, trimUrlSearchParams } from './utilities.js';
 
 // Configurations
@@ -312,53 +313,42 @@ if (existsSync(sendGridJsonFilename)) {
 	log();
 	log('┌', 'Found SendGrid configuration file.');
 
+	// TODO Remove try-catch block
+
 	try {
-		const result = z
-			.object({
-				API_KEY: z.string(),
-				SENDER: z.string().email(),
-				RECEIVER: z.string().email().optional(),
-				RECEIVERS: z.string().email().array().min(1).optional(),
-			})
-			.safeParse(JSON.parse(readFileSync(sendGridJsonFilename, { encoding: 'utf-8' })));
+		const sendGridConfig = JSON.parse(readFileSync(sendGridJsonFilename, { encoding: 'utf-8' }));
+		const parsed = safeParse(sendGridConfigSchema, sendGridConfig);
+		if (!parsed.success) throw new Error('Configuration is not valid.');
 
-		if (!result.success) throw new Error('Configuration is not valid.');
+		// TODO Inform user to update their configuration file. Link to documentation.
 
-		const { API_KEY, SENDER, RECEIVER, RECEIVERS } = result.data;
-
-		const receivers = RECEIVERS || [];
-		if (RECEIVER) receivers.push(RECEIVER);
-		if (!receivers.length) throw new Error('Email receiver(s) are not found.');
-
-		const response = await fetch(
-			generateSgSendRequest(
-				{
-					from: { email: SENDER },
-					personalizations: [{ to: receivers.map((email) => ({ email })) }],
-					subject: `[zoom-rec-dl] ${downloadDirectory}`,
-					content: [
-						{
-							type: 'text/html',
-							value: [
-								'<ul>',
-								`<li>${recShareUrls.size} recording(s) have been processed.</li>`,
-								`<li>${failedAttempts.length || 'No'} attempt(s) have failed.</li>`,
-								'</ul>',
-							].join(''),
-						},
-					],
-					attachments: Object.entries(logs)
-						.filter(([, content]) => content)
-						.map(([type, content]) => ({
-							type: 'text/plain',
-							filename: `${type}.txt`,
-							content: Buffer.from(content).toString('base64'),
-						})),
-				},
-				API_KEY,
-			),
+		const response = await sendEmail(
+			{
+				personalizations: [{ to: parsed.output.to.map((email) => ({ email })) }],
+				subject: `[zoom-rec-dl] ${downloadDirectory}`,
+				content: [
+					{
+						type: 'text/html',
+						value: [
+							'<ul>',
+							`<li>${recShareUrls.size} recording(s) have been processed.</li>`,
+							`<li>${failedAttempts.length || 'No'} attempt(s) have failed.</li>`,
+							'</ul>',
+						].join(''),
+					},
+				],
+				attachments: Object.entries(logs)
+					.filter(([, content]) => content)
+					.map(([type, content]) => ({
+						type: 'text/plain',
+						filename: `${type}.txt`,
+						content: Buffer.from(content).toString('base64'),
+					})),
+			},
+			{ apiKey: parsed.output.apiKey, from: { email: parsed.output.from } },
 		);
 
+		if (response instanceof Error) throw response;
 		if (!response.ok) throw new Error();
 
 		log('└', 'Sent logs via configured email.');

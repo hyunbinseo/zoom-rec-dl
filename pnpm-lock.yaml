@@ -5,12 +5,12 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
-  sendgrid-send:
-    specifier: ^1.0.7
-    version: 1.0.7
-  zod:
-    specifier: ^3.22.4
-    version: 3.22.4
+  new-request:
+    specifier: ^0.0.10
+    version: 0.0.10
+  valibot:
+    specifier: ^0.21.0
+    version: 0.21.0
 
 devDependencies:
   '@types/node':
@@ -740,6 +740,11 @@ packages:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
     dev: true
 
+  /new-request@0.0.10:
+    resolution: {integrity: sha512-kozyUGII3wjgKjTZChBsE5DVd7A/xf5an6vq7I0sHymC3IvAKnfXqZoQmVtVmG0R3mEyKQa24F8ZyqYXx1/5Dw==}
+    engines: {node: '>=18'}
+    dev: false
+
   /once@1.4.0:
     resolution: {integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==}
     dependencies:
@@ -855,11 +860,6 @@ packages:
       lru-cache: 6.0.0
     dev: true
 
-  /sendgrid-send@1.0.7:
-    resolution: {integrity: sha512-3xP/jmMHrdfvE2JQp+o04F7Kk9VUy6nm2Z0ZhVRWOIfQE/FAuLno+2FKr05/m1OmoeMzgZGIbam2T+sOYROa4A==}
-    engines: {node: ^16.15 || >=18}
-    dev: false
-
   /shebang-command@2.0.0:
     resolution: {integrity: sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==}
     engines: {node: '>=8'}
@@ -940,6 +940,10 @@ packages:
       punycode: 2.3.0
     dev: true
 
+  /valibot@0.21.0:
+    resolution: {integrity: sha512-XnzpX93b1vQL7CB3fHlhpLg7OutYpc3ke8SKOvp7IXgicRfTdP/w8+bf0DjhVsySq6YdF4Opld05mj6bTobo9g==}
+    dev: false
+
   /which@2.0.2:
     resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}
     engines: {node: '>= 8'}
@@ -960,7 +964,3 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
     dev: true
-
-  /zod@3.22.4:
-    resolution: {integrity: sha512-iC+8Io04lddc+mVqQ9AZ7OQ2MrUKGN+oIQyq1vemgt46jwCwLfhq7/pwnBnNXXXZb8VTVLKwp9EDkx+ryxIWmg==}
-    dev: false
