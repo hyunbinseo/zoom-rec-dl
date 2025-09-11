@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { sendEmail } from 'new-request/email/send-grid/v3';
+import { sendEmail } from 'new-request/email/send-grid/v3/POST';
 import {
 	createWriteStream,
 	existsSync,

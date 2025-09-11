@@ -1,10 +1,21 @@
 {
 	"compilerOptions": {
-		"module": "NodeNext",
-		"moduleResolution": "nodenext",
+		"strict": true,
+		"module": "nodenext",
 		"outDir": "dist",
 		"removeComments": true,
-		"strict": true,
-		"target": "esnext"
+		"target": "esnext",
+		"skipLibCheck": true,
+
+		// astro/strictest.json
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitOverride": true,
+		"noImplicitReturns": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noUncheckedIndexedAccess": true,
+		"exactOptionalPropertyTypes": true,
+		"allowUnreachableCode": false,
+		"allowUnusedLabels": false
 	}
 }

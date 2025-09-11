@@ -4,16 +4,16 @@
 	"version": "2.1.10",
 	"license": "MIT",
 	"dependencies": {
-		"new-request": "^0.0.10",
-		"valibot": "^0.21.0"
+		"new-request": "^0.0.33",
+		"valibot": "^1.1.0"
 	},
 	"devDependencies": {
-		"@types/node": "^18.18.5",
-		"@typescript-eslint/eslint-plugin": "^6.8.0",
-		"@typescript-eslint/parser": "^6.8.0",
-		"eslint": "^8.51.0",
-		"prettier": "^3.0.3",
-		"typescript": "^5.2.2"
+		"@eslint/js": "^9.35.0",
+		"@types/node": "^18.19.124",
+		"eslint": "^9.35.0",
+		"prettier": "^3.6.2",
+		"typescript": "^5.9.2",
+		"typescript-eslint": "^8.43.0"
 	},
 	"type": "module",
 	"main": "dist/index.js",
@@ -40,5 +40,6 @@
 	"engines": {
 		"node": ">=18",
 		"npm": ">=9"
-	}
+	},
+	"packageManager": "pnpm@10.15.1+sha512.34e538c329b5553014ca8e8f4535997f96180a1d0f614339357449935350d924e22f8614682191264ec33d1462ac21561aff97f6bb18065351c162c7e8f6de67"
 }
