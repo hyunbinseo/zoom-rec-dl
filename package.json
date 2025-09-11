@@ -15,6 +15,11 @@
 		"typescript": "^5.9.2",
 		"typescript-eslint": "^8.43.0"
 	},
+	"scripts": {
+		"check": "tsc --noEmit",
+		"prepack": "tsc",
+		"postversion": "git push && git push --tags && node cli/postversion.ts"
+	},
 	"type": "module",
 	"main": "dist/index.js",
 	"bin": {
