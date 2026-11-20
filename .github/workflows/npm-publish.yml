@@ -1,7 +1,7 @@
-# https://docs.npmjs.com/generating-provenance-statements#example-github-actions-workflow
-# https://pnpm.io/continuous-integration#github-actions
+# https://docs.npmjs.com/trusted-publishers
+# https://github.com/pnpm/setup
 
-name: Publish Package to npmjs
+name: Stage Package on npmjs
 on:
   release:
     types: [created]
@@ -12,15 +12,6 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          registry-url: 'https://registry.npmjs.org'
-          cache: 'pnpm'
-      - run: pnpm install
-      - run: pnpm publish --no-git-checks --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/setup@731dfb6463bbd11c11fd0ee11fe00ed0e36d48a1 # v3.2.0
+      - run: pnpm stage publish --no-git-checks --access public
