@@ -1,7 +1,7 @@
 {
 	"name": "zoom-rec-dl",
 	"description": "Save Zoom cloud recordings to a local directory.",
-	"version": "2.1.10",
+	"version": "2.2.0",
 	"license": "MIT",
 	"dependencies": {
 		"new-request": "^0.0.40",
