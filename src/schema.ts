@@ -1,7 +1,9 @@
-import { array, email, object, pipe, string } from 'valibot';
+import { array, email, minLength, object, optional, pipe, string } from 'valibot';
 
+// Same format as v2.1.10.
 export const sendGridConfigSchema = object({
-	apiKey: string(),
-	from: pipe(string(), email()),
-	to: array(pipe(string(), email())),
+	API_KEY: string(),
+	SENDER: pipe(string(), email()),
+	RECEIVER: optional(pipe(string(), email())),
+	RECEIVERS: optional(pipe(array(pipe(string(), email())), minLength(1))),
 });

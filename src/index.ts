@@ -327,18 +327,20 @@ if (existsSync(sendGridJsonFilename)) {
 	log();
 	log('┌', 'Found SendGrid configuration file.');
 
-	// TODO Remove try-catch block
-
 	try {
 		const sendGridConfig = JSON.parse(readFileSync(sendGridJsonFilename, { encoding: 'utf-8' }));
 		const parsed = safeParse(sendGridConfigSchema, sendGridConfig);
 		if (!parsed.success) throw new Error('Configuration is not valid.');
 
-		// TODO Inform user to update their configuration file. Link to documentation.
+		const { API_KEY, SENDER, RECEIVER, RECEIVERS } = parsed.output;
+
+		const receivers = RECEIVERS || [];
+		if (RECEIVER) receivers.push(RECEIVER);
+		if (!receivers.length) throw new Error('Email receiver(s) are not found.');
 
 		const response = await sendEmail(
 			{
-				personalizations: [{ to: parsed.output.to.map((email) => ({ email })) }],
+				personalizations: [{ to: receivers.map((email) => ({ email })) }],
 				subject: `[zoom-rec-dl] ${downloadDirectory}`,
 				content: [
 					{
@@ -359,7 +361,7 @@ if (existsSync(sendGridJsonFilename)) {
 						content: Buffer.from(content).toString('base64'),
 					})),
 			},
-			{ apiKey: parsed.output.apiKey, from: { email: parsed.output.from } },
+			{ apiKey: API_KEY, from: { email: SENDER } },
 		);
 
 		if (response instanceof Error) throw response;
