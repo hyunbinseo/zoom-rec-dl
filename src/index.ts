@@ -113,22 +113,12 @@ for (const recShareUrl of recShareUrls) {
 
 		if (!shareInfo.redirectUrl) throw new Error('Record play URL is not found.');
 
-		const recPlayUrl = new URL(shareInfo.redirectUrl, origin);
+		// `/rec/play/{playId}`. The new player page no longer embeds the ID in its HTML.
+		const playId = new URL(shareInfo.redirectUrl, origin).pathname.split('/').at(-1);
 
-		if (shareInfo.pwd) recPlayUrl.searchParams.set('pwd', shareInfo.pwd);
+		if (!playId) throw new Error('Play ID is not found.');
 
-		const recPlayResponse = await fetch(recPlayUrl, { headers });
-
-		if (!recPlayResponse.ok) throw new Error('Request to /rec/play has failed.');
-
-		const fileId = (await recPlayResponse.text()).match(
-			// Zoom uses both single and double quotes in JavaScript data.
-			/(?<=fileId: ['"])[^'"]+/,
-		)?.[0];
-
-		if (!fileId) throw new Error('File ID is not found.');
-
-		const playInfoUrl = new URL(`/nws/recording/1.0/play/info/${fileId}`, origin);
+		const playInfoUrl = new URL(`/nws/recording/1.0/play/info/${playId}`, origin);
 
 		if (shareInfo.pwd) playInfoUrl.searchParams.set('pwd', shareInfo.pwd);
 		playInfoUrl.searchParams.set('canPlayFromShare', 'true');
@@ -141,7 +131,9 @@ for (const recShareUrl of recShareUrls) {
 		if (!initPlayInfoResponse.ok) throw new Error('Request to /play/info has failed.');
 
 		type PlayInfo = {
-			meet: { topic: string };
+			meet: { topic: string; encryptMeetingId: string };
+			clipStartTime: number;
+			clipDownload: boolean;
 			totalClips: number;
 			currentClip: number;
 			nextClipStartTime: number;
@@ -171,8 +163,30 @@ for (const recShareUrl of recShareUrls) {
 				nextClipStartTime = result.nextClipStartTime;
 			}
 
+			// Same as the player's download button. Play info only includes the file being played.
+			const downloadUrl = playInfo.clipDownload
+				? new URL(
+						`/nws/recording/1.0/download-meeting/${encodeURIComponent(playInfo.meet.encryptMeetingId)}`,
+						origin,
+					)
+				: new URL(`/nws/recording/1.0/sdownload/${encodeURIComponent(playId)}`, origin);
+
+			if (playInfo.clipDownload)
+				downloadUrl.searchParams.set('startTime', playInfo.clipStartTime.toString());
+
+			const downloadResponse = await fetch(downloadUrl, {
+				method: playInfo.clipDownload ? 'POST' : 'GET',
+				headers,
+			});
+
+			if (!downloadResponse.ok) throw new Error(`Request to the download URL has failed. (${i})`);
+
+			const { result: download } = (await downloadResponse.json()) as {
+				result: null | { batchDownloadFileList?: string[]; redirectUrl?: string };
+			};
+
 			const mediaUrls = new Set(
-				Object.values(playInfo).filter(
+				(download?.batchDownloadFileList ?? [download?.redirectUrl]).filter(
 					(v): v is string =>
 						typeof v === 'string' && /^https:\/\/ssrweb.zoom.us\/[^\s]+(.mp4|.m4a)[^\s]*$/.test(v),
 				),
