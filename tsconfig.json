@@ -1,11 +1,15 @@
 {
+	"include": ["src"],
 	"compilerOptions": {
-		"strict": true,
-		"module": "nodenext",
+		"rootDir": "src",
 		"outDir": "dist",
-		"removeComments": true,
-		"target": "esnext",
+		"module": "nodenext",
+		// engines.node >=18
+		"target": "es2022",
+		"types": ["node"],
+		"strict": true,
 		"skipLibCheck": true,
+		"removeComments": true,
 
 		// astro/strictest.json
 		"noFallthroughCasesInSwitch": true,
