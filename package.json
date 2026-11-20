@@ -1,0 +1,55 @@
+{
+	"name": "zoom-rec-dl",
+	"version": "2.1.10",
+	"description": "TODO",
+	"homepage": "https://github.com/hyunbinseo/zoom-rec-dl#readme",
+	"bugs": {
+		"url": "https://github.com/hyunbinseo/zoom-rec-dl/issues"
+	},
+	"license": "MIT",
+	"author": "Hyunbin Seo",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/hyunbinseo/zoom-rec-dl.git"
+	},
+	"files": [
+		"dist"
+	],
+	"type": "module",
+	"exports": {
+		".": "./dist/index.mjs",
+		"./package.json": "./package.json"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"build": "vp pack",
+		"check": "vp check",
+		"dev": "vp pack --watch",
+		"format": "vp fmt",
+		"prepare": "vp config",
+		"prepublishOnly": "vp run build",
+		"test": "vp test"
+	},
+	"devDependencies": {
+		"@types/node": "^26.6.5",
+		"typescript": "^7.0.2",
+		"vite-plus": "catalog:"
+	},
+	"devEngines": {
+		"packageManager": {
+			"name": "pnpm",
+			"version": "12.21.0",
+			"onFail": "download"
+		},
+		"runtime": {
+			"name": "node",
+			"version": "26.13.1",
+			"onFail": "download"
+		}
+	},
+	"engines": {
+		"node": ">=26"
+	}
+}
