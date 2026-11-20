@@ -10,6 +10,10 @@
 				"--no-usage-statistics",
 				"--redact-network-headers"
 			]
+		},
+		"valibot": {
+			"type": "http",
+			"url": "https://valibot.dev/mcp"
 		}
 	}
 }

@@ -1,7 +1,7 @@
 {
 	"compilerOptions": {
 		"target": "esnext",
-		"lib": ["es2025"],
+		"lib": ["es2025", "esnext.temporal"],
 		"moduleDetection": "force",
 		"module": "nodenext",
 		"moduleResolution": "nodenext",

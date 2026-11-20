@@ -5,10 +5,11 @@ export default defineConfig({
 		'*': 'vp check --fix',
 	},
 	pack: {
+		entry: ['src/index.ts', 'src/cli.ts'],
 		dts: {
 			generator: 'tsgo',
 		},
-		exports: true,
+		exports: { exclude: ['cli'] },
 	},
 	lint: {
 		options: {

@@ -1,0 +1,60 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`downloads, skips, and reports failures 1`] = `
+"
+https://zoom.us/rec/share/a
+  Weekly Sync (2026-11-20T01:00:00.000Z, 62 min)
+  skip Weekly Sync GMT20261120-010000_Recording_1920x1080.mp4
+  done Weekly Sync GMT20261120-010000_Recording_avo_1280x720.mp4
+  fail Weekly Sync GMT20261120-010000_Recording.m4a
+       HTTP 403 while downloading
+       Second line
+
+https://zoom.us/rec/share/b
+  Lecture 3 (2026-11-20T01:00:00.000Z, 62 min)
+  unsupported, skipped GMT20261120-010000_Recording_hv_1280x720.mp4
+  fail Lecture 3 GMT20261120-010000_Recording.m4a
+       HTTP 403 while downloading
+       Second line
+
+https://zoom.us/rec/play/c
+  The host has disabled downloads.
+"
+`;
+
+exports[`downloads, skips, and reports failures 2`] = `
+"
+3 of 3 recording(s) failed:
+  https://zoom.us/rec/share/a
+  https://zoom.us/rec/share/b
+  https://zoom.us/rec/play/c
+"
+`;
+
+exports[`selects types in order of preference 1`] = `
+"
+https://zoom.us/rec/share/all
+  All (2026-11-20T01:00:00.000Z, 62 min)
+  done All GMT20261120-010000_Recording.m4a
+  done All GMT20261120-010000_Recording_avo_1280x720.mp4
+
+https://zoom.us/rec/share/partial
+  Partial (2026-11-20T01:00:00.000Z, 62 min)
+  1 of 2 types available
+  done Partial GMT20261120-010000_Recording.m4a
+
+https://zoom.us/rec/share/none
+  None (2026-11-20T01:00:00.000Z, 62 min)
+  No matching types. Available: shared_screen_with_speaker_view
+"
+`;
+
+exports[`shows progress on a terminal 1`] = `
+"
+[35mhttps://zoom.us/rec/share/a[39m
+  Weekly Sync (2026-11-20T01:00:00.000Z, 62 min)
+
+   50% Weekly Sync GMT20261120-010000_Recording.m4a
+[K  [32mdone[39m Weekly Sync GMT20261120-010000_Recording.m4a
+"
+`;
